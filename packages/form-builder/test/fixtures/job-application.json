@@ -1,0 +1,190 @@
+{
+  "steps": [
+    {
+      "id": "about",
+      "title": "About you",
+      "fields": [
+        {
+          "name": "fullName",
+          "label": "Full name",
+          "type": "text",
+          "isRequired": true,
+          "validation": { "minLength": 2, "maxLength": 80 }
+        },
+        {
+          "name": "email",
+          "label": "Email",
+          "type": "email",
+          "isRequired": true
+        },
+        {
+          "name": "phone",
+          "label": "Phone number",
+          "type": "text",
+          "isRequired": true,
+          "placeholder": "+995555123456",
+          "validation": {
+            "pattern": "^\\+?[0-9]{9,15}$",
+            "message": "Enter a valid phone number (9-15 digits)"
+          }
+        },
+        {
+          "name": "age",
+          "label": "Age",
+          "type": "number",
+          "isRequired": true,
+          "validation": { "min": 18, "max": 99, "integer": true, "message": "Age must be between 18 and 99" }
+        },
+        {
+          "name": "country",
+          "label": "Country",
+          "type": "select",
+          "isRequired": true,
+          "options": [
+            { "label": "Georgia", "value": "ge" },
+            { "label": "Germany", "value": "de" },
+            { "label": "Other", "value": "other" }
+          ]
+        },
+        {
+          "name": "cityGe",
+          "label": "City",
+          "type": "select",
+          "isRequired": true,
+          "options": [
+            { "label": "Tbilisi", "value": "tbilisi" },
+            { "label": "Batumi", "value": "batumi" },
+            { "label": "Kutaisi", "value": "kutaisi" }
+          ],
+          "showWhen": { "field": "country", "equals": "ge" }
+        },
+        {
+          "name": "otherCountry",
+          "label": "Which country?",
+          "type": "text",
+          "isRequired": true,
+          "validation": { "minLength": 2 },
+          "showWhen": { "field": "country", "equals": "other" }
+        }
+      ]
+    },
+    {
+      "id": "employment",
+      "title": "Employment",
+      "fields": [
+        {
+          "name": "employmentStatus",
+          "label": "Employment status",
+          "type": "radio",
+          "isRequired": true,
+          "options": [
+            { "label": "Employed", "value": "employed" },
+            { "label": "Self-employed", "value": "self-employed" },
+            { "label": "Student", "value": "student" },
+            { "label": "Unemployed", "value": "unemployed" }
+          ]
+        },
+        {
+          "name": "companyName",
+          "label": "Company name",
+          "type": "text",
+          "isRequired": true,
+          "validation": { "minLength": 2, "maxLength": 100 },
+          "showWhen": { "field": "employmentStatus", "equals": ["employed", "self-employed"] }
+        },
+        {
+          "name": "position",
+          "label": "Current position",
+          "type": "text",
+          "isRequired": true,
+          "showWhen": { "field": "employmentStatus", "equals": "employed" }
+        },
+        {
+          "name": "yearsOfExperience",
+          "label": "Years of experience",
+          "type": "number",
+          "isRequired": true,
+          "validation": { "min": 0, "max": 50, "integer": true },
+          "showWhen": { "field": "employmentStatus", "equals": ["employed", "self-employed"] }
+        },
+        {
+          "name": "university",
+          "label": "University",
+          "type": "text",
+          "isRequired": true,
+          "showWhen": { "field": "employmentStatus", "equals": "student" }
+        },
+        {
+          "name": "graduationYear",
+          "label": "Expected graduation year",
+          "type": "number",
+          "isRequired": false,
+          "validation": { "min": 2026, "max": 2035, "integer": true },
+          "showWhen": { "field": "employmentStatus", "equals": "student" }
+        }
+      ]
+    },
+    {
+      "id": "business",
+      "title": "Your business",
+      "description": "Only asked when you're self-employed.",
+      "showWhen": { "field": "employmentStatus", "equals": "self-employed" },
+      "fields": [
+        {
+          "name": "hasWebsite",
+          "label": "Does your business have a website?",
+          "type": "radio",
+          "isRequired": true,
+          "options": [
+            { "label": "Yes", "value": "yes" },
+            { "label": "No", "value": "no" }
+          ]
+        },
+        {
+          "name": "websiteUrl",
+          "label": "Website URL",
+          "type": "text",
+          "isRequired": true,
+          "placeholder": "https://example.com",
+          "validation": {
+            "pattern": "^https?://.+\\..+$",
+            "message": "Enter a valid URL starting with http:// or https://"
+          },
+          "showWhen": { "field": "hasWebsite", "equals": "yes" }
+        }
+      ]
+    },
+    {
+      "id": "finish",
+      "title": "Final details",
+      "fields": [
+        {
+          "name": "hasReferral",
+          "label": "I was referred by someone",
+          "type": "checkbox",
+          "isRequired": false
+        },
+        {
+          "name": "referralName",
+          "label": "Referrer's name",
+          "type": "text",
+          "isRequired": true,
+          "showWhen": { "field": "hasReferral", "equals": true }
+        },
+        {
+          "name": "coverLetter",
+          "label": "Cover letter",
+          "type": "textarea",
+          "isRequired": false,
+          "validation": { "maxLength": 1000 }
+        },
+        {
+          "name": "agreeToTerms",
+          "label": "I agree to the terms and conditions",
+          "type": "checkbox",
+          "isRequired": true
+        }
+      ]
+    }
+  ]
+}

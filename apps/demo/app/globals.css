@@ -1,0 +1,9 @@
+@import "tailwindcss";
+/* let Tailwind see the classes used inside the form-builder-js package */
+@source "../../../node_modules/form-builder-js/dist";
+
+body {
+  background: #f3f4f6;
+  color: #111827;
+  font-family: system-ui, -apple-system, sans-serif;
+}
