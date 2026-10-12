@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.0",
-    "form-builder-js": "*",
+    "@nodari-pruidze/form-builder-js": "*",
     "next": "^15.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

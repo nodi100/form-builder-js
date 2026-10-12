@@ -1,5 +1,5 @@
 // Core: no React, safe to import on the server (server actions, API routes).
-// The React components live in "form-builder-js/react".
+// The React components live in "@nodari-pruidze/form-builder-js/react".
 
 export type {
   Condition,

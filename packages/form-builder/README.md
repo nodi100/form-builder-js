@@ -1,4 +1,4 @@
-# form-builder-js
+# @nodari-pruidze/form-builder-js
 
 Build React forms from JSON. Includes Zod validation, conditional fields, multi-step wizards, and server-side re-validation that uses the same schema.
 
@@ -25,11 +25,11 @@ It works in any React app. The examples below use the Next.js App Router.
 ## Install
 
 ```bash
-npm i form-builder-js react-hook-form zod @hookform/resolvers
+npm i @nodari-pruidze/form-builder-js react-hook-form zod @hookform/resolvers
 # or
-pnpm add form-builder-js react-hook-form zod @hookform/resolvers
+pnpm add @nodari-pruidze/form-builder-js react-hook-form zod @hookform/resolvers
 # or
-yarn add form-builder-js react-hook-form zod @hookform/resolvers
+yarn add @nodari-pruidze/form-builder-js react-hook-form zod @hookform/resolvers
 ```
 
 Tailwind only generates classes it finds in your source. Point it at the package in your main CSS file. Adjust the relative path to where your CSS file lives. The same path works with pnpm's symlinked `node_modules`.
@@ -37,7 +37,7 @@ Tailwind only generates classes it finds in your source. Point it at the package
 ```css
 /* app/globals.css */
 @import "tailwindcss";
-@source "../node_modules/form-builder-js/dist";
+@source "../node_modules/@nodari-pruidze/form-builder-js/dist";
 ```
 
 ## Quick start (Next.js)
@@ -87,7 +87,7 @@ Tailwind only generates classes it finds in your source. Point it at the package
 ```ts
 // lib/get-form.ts
 import "server-only";
-import { parseFormSchema } from "form-builder-js";
+import { parseFormSchema } from "@nodari-pruidze/form-builder-js";
 import contact from "@/data/contact.json";
 
 export async function getForm() {
@@ -100,7 +100,7 @@ export async function getForm() {
 ```ts
 // app/actions.ts
 "use server";
-import { validateFormValues, type FormValues, type SubmitResult } from "form-builder-js";
+import { validateFormValues, type FormValues, type SubmitResult } from "@nodari-pruidze/form-builder-js";
 import { getForm } from "@/lib/get-form";
 
 export async function submitContact(values: FormValues): Promise<SubmitResult> {
@@ -113,11 +113,11 @@ export async function submitContact(values: FormValues): Promise<SubmitResult> {
 }
 ```
 
-**4. Render it.** `form-builder-js/react` is already marked `"use client"`:
+**4. Render it.** `@nodari-pruidze/form-builder-js/react` is already marked `"use client"`:
 
 ```tsx
 // app/page.tsx (a server component)
-import { FormBuilder } from "form-builder-js/react";
+import { FormBuilder } from "@nodari-pruidze/form-builder-js/react";
 import { getForm } from "@/lib/get-form";
 import { submitContact } from "./actions";
 
@@ -171,7 +171,7 @@ Every piece of text can be overridden. Templates use `{placeholders}`. **Pass th
 
 ```ts
 // lib/messages.ts
-import type { FormMessages } from "form-builder-js";
+import type { FormMessages } from "@nodari-pruidze/form-builder-js";
 
 export const messagesKa: Partial<FormMessages> = {
   required: "{label} სავალდებულოა",
@@ -197,7 +197,7 @@ See `defaultMessages` for every key.
 Each part of the form has a slot (`input`, `inputError`, `label`, `button`, `stepperItemCurrent` and so on; see `defaultClassNames`). A slot you pass **replaces** the default. To tweak a default, build on it:
 
 ```tsx
-import { FormBuilder, defaultClassNames } from "form-builder-js/react";
+import { FormBuilder, defaultClassNames } from "@nodari-pruidze/form-builder-js/react";
 
 <FormBuilder
   form={form}
@@ -218,7 +218,7 @@ Components are functions, so in Next.js pass them from a client component:
 ```tsx
 // components/MyForm.tsx
 "use client";
-import { FormBuilder, type FieldComponentProps, type FormBuilderProps } from "form-builder-js/react";
+import { FormBuilder, type FieldComponentProps, type FormBuilderProps } from "@nodari-pruidze/form-builder-js/react";
 
 function MyTextInput({ id, register, aria, hasError }: FieldComponentProps) {
   return <input id={id} {...register} {...aria} className={hasError ? "my-input my-input--error" : "my-input"} />;
@@ -242,7 +242,7 @@ function MySelect({ field, control }: FieldComponentProps) {
 
 ## API
 
-From `form-builder-js` (no React, safe on the server):
+From `@nodari-pruidze/form-builder-js` (no React, safe on the server):
 
 | Export | |
 |---|---|
@@ -253,7 +253,7 @@ From `form-builder-js` (no React, safe on the server):
 | `defaultMessages`, `resolveMessages`, `formatMessage` | Text helpers. |
 | Types | `FormDefinition`, `FormStep`, `FieldSchema`, `Condition`, `FormValues`, `SubmitResult`, `FormMessages` and more. |
 
-From `form-builder-js/react`:
+From `@nodari-pruidze/form-builder-js/react`:
 
 | Export | |
 |---|---|

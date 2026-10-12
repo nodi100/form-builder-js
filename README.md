@@ -1,6 +1,6 @@
 # form-builder-js — monorepo
 
-Source of the [`form-builder-js`](packages/form-builder) npm package and a Next.js demo app that uses it.
+Source of the [`@nodari-pruidze/form-builder-js`](packages/form-builder) npm package and a Next.js demo app that uses it.
 Package docs (install, JSON format, customizing): [packages/form-builder/README.md](packages/form-builder/README.md).
 
 ```
@@ -32,8 +32,8 @@ The demo imports the **built** package (`dist/`), exactly like other projects wi
 2. Push to `main`. The Release workflow opens a "Version Packages" PR that bumps the version and updates the changelog.
 3. Merge that PR, and the workflow publishes to npm.
 
-One-time setup:
-- Create an npm access token (Automation type) at npmjs.com, and add it to the GitHub repo secrets as `NPM_TOKEN`.
-- Add `"repository"` to `packages/form-builder/package.json` once the GitHub repo exists. npm provenance needs it.
+Publishing uses npm **Trusted Publishing**, so there's no npm token to store or renew. One-time setup, done after the first manual publish:
+- On npmjs.com, open `@nodari-pruidze/form-builder-js` → Settings → Trusted publishing → GitHub Actions.
+- Enter owner `nodi100`, repository `form-builder-js` and workflow `release.yml`, and leave the environment empty.
 
-Manual publish (without CI): `npm login`, then `npm run release`.
+Manual publish (needs 2FA on your npm account): `cd packages/form-builder && npm publish --access public`.

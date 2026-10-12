@@ -9,7 +9,9 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   contents: write
   pull-requests: write
-  id-token: write # npm provenance
+  # npm Trusted Publishing: GitHub proves who is publishing, no npm token needed.
+  # Set up once on npmjs.com → @nodari-pruidze/form-builder-js → Settings → Trusted publishing.
+  id-token: write
 
 jobs:
   release:
@@ -21,6 +23,8 @@ jobs:
           node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org
+      # Trusted Publishing needs npm 11.5.1+
+      - run: npm install -g npm@^11.5.1
       - run: npm ci
       - run: npm test
       # Opens a "Version Packages" PR while changesets are pending;
@@ -31,6 +35,3 @@ jobs:
           publish: npm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true

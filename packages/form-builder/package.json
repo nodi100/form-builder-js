@@ -1,5 +1,5 @@
 {
-  "name": "form-builder-js",
+  "name": "@nodari-pruidze/form-builder-js",
   "version": "0.1.0",
   "description": "JSON-driven React forms with Zod validation, conditional fields, multi-step wizards and server-side re-validation. Styled with Tailwind CSS v4.",
   "license": "MIT",
@@ -35,6 +35,9 @@
       "import": "./dist/react/index.js"
     },
     "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "files": [
     "dist"

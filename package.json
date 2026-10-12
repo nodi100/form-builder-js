@@ -6,14 +6,14 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build -w form-builder-js && npm run build -w demo",
-    "dev": "npm run build -w form-builder-js && npm run dev -w demo",
-    "dev:package": "npm run dev -w form-builder-js",
-    "test": "npm test -w form-builder-js",
-    "typecheck": "npm run build -w form-builder-js && npm run typecheck --workspaces --if-present",
+    "build": "npm run build -w @nodari-pruidze/form-builder-js && npm run build -w demo",
+    "dev": "npm run build -w @nodari-pruidze/form-builder-js && npm run dev -w demo",
+    "dev:package": "npm run dev -w @nodari-pruidze/form-builder-js",
+    "test": "npm test -w @nodari-pruidze/form-builder-js",
+    "typecheck": "npm run build -w @nodari-pruidze/form-builder-js && npm run typecheck --workspaces --if-present",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "npm run build -w form-builder-js && changeset publish"
+    "release": "npm run build -w @nodari-pruidze/form-builder-js && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.0"

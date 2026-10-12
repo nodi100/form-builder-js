@@ -1,6 +1,6 @@
 "use server";
 
-import { validateFormValues, type FormValues, type SubmitResult } from "form-builder-js";
+import { validateFormValues, type FormValues, type SubmitResult } from "@nodari-pruidze/form-builder-js";
 import { getFormSchema } from "@/lib/get-form-schema";
 
 export async function submitJobApplication(values: FormValues): Promise<SubmitResult> {

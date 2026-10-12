@@ -1,6 +1,6 @@
 @import "tailwindcss";
-/* let Tailwind see the classes used inside the form-builder-js package */
-@source "../../../node_modules/form-builder-js/dist";
+/* let Tailwind see the classes used inside the @nodari-pruidze/form-builder-js package */
+@source "../../../node_modules/@nodari-pruidze/form-builder-js/dist";
 
 body {
   background: #f3f4f6;
