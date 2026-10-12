@@ -268,6 +268,10 @@ From `@nodari-pruidze/form-builder-js/react`:
 - Errors appear when a field loses focus or on "Next". Once shown, an error clears as soon as the field is fixed.
 - Enter on a middle step acts as "Next".
 
+## Changelog
+
+See [CHANGELOG.md](https://github.com/nodi100/form-builder-js/blob/main/packages/form-builder/CHANGELOG.md) for what changed in each version.
+
 ## License
 
 MIT
