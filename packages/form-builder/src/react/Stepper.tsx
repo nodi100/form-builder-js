@@ -1,44 +1,55 @@
 import type { ClassNames } from "./class-names";
 
-type Props = {
-  /** Visible steps only; `index` is the step's position in the full list */
-  items: { index: number; title?: string }[];
-  current: number;
-  /** Furthest step index reached; steps after it can't be clicked yet */
-  furthest: number;
+export type StepperItem = {
+  /** Position in `form.steps`; pass it to `onSelect` */
+  index: number;
+  /** 1-based number among the visible steps */
+  number: number;
+  id: string;
+  title?: string;
+  /** "complete" = before the current step, "upcoming" = after it */
+  status: "complete" | "current" | "upcoming";
+  /** Already reached and not current, so it can be clicked */
+  reachable: boolean;
+};
+
+/**
+ * Props every stepper gets, built-in or your own (see the `stepper` prop of
+ * <FormBuilder>). Only visible steps are listed.
+ */
+export type StepperProps = {
+  items: StepperItem[];
+  /** Go to a step. Jumping forward still validates the current step. */
   onSelect: (index: number) => void;
+  /** Accessible name for the <nav> (`messages.progressLabel`) */
   label: string;
   classNames: ClassNames;
 };
 
-export function Stepper({ items, current, furthest, onSelect, label, classNames }: Props) {
+/** Built-in stepper */
+export function Stepper({ items, onSelect, label, classNames }: StepperProps) {
   return (
     <nav aria-label={label}>
       <ol className={classNames.stepper}>
-        {items.map((item, n) => {
-          const isCurrent = item.index === current;
-          const reachable = !isCurrent && item.index <= furthest;
-
-          return (
-            <li key={item.index}>
-              <button
-                type="button"
-                disabled={!reachable}
-                aria-current={isCurrent ? "step" : undefined}
-                onClick={() => onSelect(item.index)}
-                className={
-                  isCurrent
-                    ? classNames.stepperItemCurrent
-                    : reachable
-                      ? classNames.stepperItem
-                      : classNames.stepperItemUpcoming
-                }
-              >
-                {n + 1}. {item.title}
-              </button>
-            </li>
-          );
-        })}
+        {items.map((item) => (
+          <li key={item.index}>
+            <button
+              type="button"
+              disabled={!item.reachable}
+              aria-current={item.status === "current" ? "step" : undefined}
+              onClick={() => onSelect(item.index)}
+              className={
+                item.status === "current"
+                  ? classNames.stepperItemCurrent
+                  : item.reachable
+                    ? classNames.stepperItem
+                    : classNames.stepperItemUpcoming
+              }
+            >
+              {item.number}. {item.title}
+            </button>
+          </li>
+        ))}
       </ol>
     </nav>
   );

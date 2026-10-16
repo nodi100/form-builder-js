@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { FormDefinition, FormValues, SubmitResult } from "../core/types";
@@ -14,7 +14,7 @@ import { formatMessage, resolveMessages, type FormMessages } from "../core/messa
 import { defaultClassNames, type FormClassNames } from "./class-names";
 import type { FieldComponents } from "./types";
 import { FormField } from "./FormField";
-import { Stepper } from "./Stepper";
+import { Stepper, type StepperItem, type StepperProps } from "./Stepper";
 
 export type FormBuilderProps = {
   /** Result of parseFormSchema, usually loaded on the server */
@@ -27,6 +27,8 @@ export type FormBuilderProps = {
   classNames?: FormClassNames;
   /** Replace the input for any field type with your own component */
   components?: FieldComponents;
+  /** Replace the stepper of a multi-step form with your own component */
+  stepper?: ComponentType<StepperProps>;
 };
 
 /** Current URL with ?step=<id> */
@@ -36,7 +38,14 @@ function stepUrl(stepId: string) {
   return url;
 }
 
-export function FormBuilder({ form, onSubmit, messages, classNames, components }: FormBuilderProps) {
+export function FormBuilder({
+  form,
+  onSubmit,
+  messages,
+  classNames,
+  components,
+  stepper: StepperComponent = Stepper,
+}: FormBuilderProps) {
   const { steps } = form;
   const isMultiStep = steps.length > 1;
 
@@ -99,6 +108,16 @@ export function FormBuilder({ form, onSubmit, messages, classNames, components }
   const nextStep = visibleSteps.find((i) => i > current);
   const step = steps[current];
   const stepFields = step.fields.filter((f) => isFieldVisible(f, values, byName));
+  const stepperItems = visibleSteps.map(
+    (index, n): StepperItem => ({
+      index,
+      number: n + 1,
+      id: steps[index].id,
+      title: steps[index].title,
+      status: index < current ? "complete" : index === current ? "current" : "upcoming",
+      reachable: index !== current && index <= furthest,
+    })
+  );
 
   const goTo = (index: number, mode: "push" | "replace" = "push") => {
     setStepIndex(index);
@@ -215,10 +234,8 @@ export function FormBuilder({ form, onSubmit, messages, classNames, components }
   return (
     <form onSubmit={onFormSubmit} noValidate className={cn.form}>
       {isMultiStep && (
-        <Stepper
-          items={visibleSteps.map((index) => ({ index, title: steps[index].title }))}
-          current={current}
-          furthest={furthest}
+        <StepperComponent
+          items={stepperItems}
           onSelect={selectStep}
           label={m.progressLabel}
           classNames={cn}

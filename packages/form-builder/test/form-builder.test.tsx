@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { parseFormSchema } from "../src";
-import { FormBuilder, type FieldComponentProps } from "../src/react";
+import { FormBuilder, type FieldComponentProps, type StepperProps } from "../src/react";
 
 afterEach(cleanup);
 
@@ -61,5 +61,44 @@ describe("<FormBuilder>", () => {
       />
     );
     expect(screen.getByRole("button", { name: "Next" }).className).toBe("my-button");
+  });
+
+  it("uses a custom stepper", async () => {
+    function CustomStepper({ items, onSelect }: StepperProps) {
+      return (
+        <ul>
+          {items.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                data-testid={`step-${item.id}`}
+                data-status={item.status}
+                disabled={!item.reachable}
+                onClick={() => onSelect(item.index)}
+              >
+                {item.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    render(<FormBuilder form={form} onSubmit={async () => ({ success: true })} stepper={CustomStepper} />);
+
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(screen.getByTestId("step-one").dataset.status).toBe("current");
+    expect(screen.getByTestId("step-two").dataset.status).toBe("upcoming");
+    expect((screen.getByTestId("step-two") as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: "Ann" } });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(await screen.findByRole("heading", { name: "Step two" })).toBeTruthy();
+    expect(screen.getByTestId("step-one").dataset.status).toBe("complete");
+    expect(screen.getByTestId("step-two").dataset.status).toBe("current");
+
+    fireEvent.click(screen.getByTestId("step-one"));
+    expect(await screen.findByRole("heading", { name: "Step one" })).toBeTruthy();
+    expect((screen.getByTestId("step-two") as HTMLButtonElement).disabled).toBe(false);
   });
 });
