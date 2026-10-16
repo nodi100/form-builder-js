@@ -130,7 +130,48 @@ If `fieldErrors` comes back from the server, each message is shown under its fie
 
 ## Form JSON
 
-A form is either `{ "steps": [...] }` or a plain array of fields, which makes a single-step form with no stepper.
+A form can be written in two ways.
+
+**1. A plain array of fields: a simple one-page form.** No steps, no stepper, no Back/Next buttons, just the fields and a Submit button:
+
+```json
+[
+  { "name": "fullName", "label": "Full name", "type": "text", "isRequired": true },
+  { "name": "email", "label": "Email", "type": "email", "isRequired": true },
+  { "name": "message", "label": "Message", "type": "textarea", "validation": { "maxLength": 500 } }
+]
+```
+
+**2. An object with `steps`: a multi-step wizard.** Each step gets its own page with a stepper, a "Step 1 of 2" counter and Back/Next buttons (see the [Quick start](#quick-start-nextjs) example).
+
+```json
+{
+  "steps": [
+    { "id": "about", "title": "About you", "fields": [ ... ] },
+    { "id": "work", "title": "Work", "fields": [ ... ] }
+  ]
+}
+```
+
+A `steps` object with **one** step is also a one-page form, like the plain array, but lets you show a title and description above the fields:
+
+```json
+{
+  "steps": [
+    {
+      "id": "contact",
+      "title": "Contact us",
+      "description": "We reply within one business day.",
+      "fields": [
+        { "name": "email", "label": "Email", "type": "email", "isRequired": true },
+        { "name": "message", "label": "Message", "type": "textarea", "isRequired": true }
+      ]
+    }
+  ]
+}
+```
+
+Both formats are loaded the same way, with `parseFormSchema`, and conditional fields (`showWhen`) work in both.
 
 ### Step
 
@@ -194,19 +235,135 @@ See `defaultMessages` for every key.
 
 ### Styles: `classNames`
 
-Each part of the form has a slot (`input`, `inputError`, `label`, `button`, `stepperItemCurrent` and so on; see `defaultClassNames`). A slot you pass **replaces** the default. To tweak a default, build on it:
+Every part of the form has a named **slot** that holds its Tailwind classes. Pass the slots you want to change in `classNames`; the rest keep their defaults.
+
+| Group | Slot | Applies to |
+|---|---|---|
+| Layout | `form` | The `<form>` element (spacing between fields) |
+| | `field` | The wrapper around one field (label + input + error) |
+| | `actions` | The row that holds the Back / Next / Submit buttons |
+| Labels | `label` | The label above an input |
+| | `legend` | The label of a radio group |
+| | `required` | The `*` after a required field's label |
+| Inputs | `input` | Text, email, number, textarea and select inputs |
+| | `inputError` | The same inputs **when they have an error** (used instead of `input`) |
+| | `checkboxLabel` | The `<label>` that wraps a checkbox and its text |
+| | `radioGroup` | The wrapper around all options of a radio group |
+| | `radioLabel` | The `<label>` that wraps one radio option and its text |
+| | `error` | The error message under a field |
+| Stepper | `stepper` | The list that holds the step buttons |
+| | `stepperItem` | A step already visited, which can be clicked to go back |
+| | `stepperItemCurrent` | The step the user is on |
+| | `stepperItemUpcoming` | A step not reached yet (disabled) |
+| Step heading | `stepHeader` | The wrapper around the counter, title and description |
+| | `stepCounter` | The "Step 1 of 3" text |
+| | `stepTitle` | The step title |
+| | `stepDescription` | The text under the title |
+| Status | `statusSuccess` | The message after a successful submit |
+| | `statusError` | The message after a failed submit |
+| Buttons | `button` | The Next / Submit button |
+| | `buttonSecondary` | The Back button |
+
+**A slot you pass replaces the default, it doesn't add to it.** So `input: "h-12"` gives an input with *only* `h-12` (no border, no padding). To keep the default look and change one thing, build on `defaultClassNames`:
 
 ```tsx
 import { FormBuilder, defaultClassNames } from "@nodari-pruidze/form-builder-js/react";
 
+// keeps the default look, only makes inputs taller
+classNames={{ input: defaultClassNames.input + " h-12" }}
+
+// replaces the look completely
+classNames={{ input: "w-full rounded-none border-b-2 border-gray-300 px-0 py-2 focus:border-indigo-600 outline-none" }}
+```
+
+You can print `defaultClassNames` (or read it in your editor) to see every default.
+
+#### Example: restyle the inputs
+
+Remember to set `inputError` too, otherwise a field with an error falls back to the default style.
+
+```tsx
 <FormBuilder
   form={form}
   onSubmit={submit}
   classNames={{
-    button: "rounded-lg bg-indigo-600 px-6 py-2 text-white hover:bg-indigo-500",
-    input: defaultClassNames.input + " h-11",
+    label: "text-sm font-semibold text-slate-700",
+    input: "w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200",
+    inputError: "w-full rounded-lg border border-red-400 bg-red-50 px-4 py-3 outline-none focus:ring-2 focus:ring-red-200",
+    error: "text-xs font-medium text-red-600",
+    button: "rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-500 disabled:opacity-50",
+    buttonSecondary: "rounded-lg border border-slate-300 px-6 py-3 text-slate-700 hover:bg-slate-100",
   }}
-/>;
+/>
+```
+
+#### Example: restyle the stepper
+
+The stepper is a row of buttons, one per step. Each button gets one of three slots depending on its state:
+
+```text
+ [ 1. About you ]   [ 2. Work ]   [ 3. Review ]
+   stepperItem      stepperItem   stepperItem
+   (visited)        Current       Upcoming
+                    (you are      (not reached
+                     here)         yet)
+```
+
+Tabs with an underline instead of the default pills:
+
+```tsx
+<FormBuilder
+  form={form}
+  onSubmit={submit}
+  classNames={{
+    stepper: "flex gap-6 border-b border-slate-200 text-sm",
+    stepperItem: "pb-2 text-slate-600 hover:text-indigo-600",
+    stepperItemCurrent: "-mb-px border-b-2 border-indigo-600 pb-2 font-semibold text-indigo-600",
+    stepperItemUpcoming: "pb-2 text-slate-300",
+    stepCounter: "text-xs uppercase tracking-wide text-indigo-600",
+    stepTitle: "text-2xl font-bold outline-none",
+  }}
+/>
+```
+
+To hide the stepper or the "Step 1 of 3" counter, use `hidden`:
+
+```tsx
+classNames={{ stepper: "hidden", stepCounter: "hidden" }}
+```
+
+To change the stepper's **markup** (circles, icons, checkmarks), not only its classes, use the [`stepper` prop](#your-own-stepper-stepper).
+
+#### Example: style radio buttons and checkboxes
+
+There is no slot for the small native radio/checkbox `<input>` itself, only for the label around it. Style it through the label with Tailwind's `accent-*` (color) and `[&>input]:` (any other class):
+
+```tsx
+classNames={{
+  checkboxLabel: defaultClassNames.checkboxLabel + " accent-indigo-600 [&>input]:size-5",
+  radioLabel: defaultClassNames.radioLabel + " accent-indigo-600 [&>input]:size-5",
+}}
+```
+
+For a fully custom look (for example toggle switches), use your own component, see [`components`](#your-own-inputs-components).
+
+#### Styling one field differently
+
+`classNames` applies to **every** field of that kind; the JSON has no per-field `className`. To style a single field, wrap the built-in `FieldInput` and change the classes for that field only:
+
+```tsx
+"use client";
+import { FieldInput, FormBuilder, type FieldComponentProps, type FormBuilderProps } from "@nodari-pruidze/form-builder-js/react";
+
+function TextInput(props: FieldComponentProps) {
+  if (props.field.name !== "fullName") return <FieldInput {...props} />;
+  const { input, inputError } = props.classNames;
+  return <FieldInput {...props} classNames={{ ...props.classNames, input: input + " text-lg", inputError: inputError + " text-lg" }} />;
+}
+
+export function MyForm(props: FormBuilderProps) {
+  return <FormBuilder {...props} components={{ text: TextInput }} />;
+}
 ```
 
 ### Your own inputs: `components`
@@ -240,6 +397,43 @@ function MySelect({ field, control }: FieldComponentProps) {
 }
 ```
 
+### Your own stepper: `stepper`
+
+The stepper of a multi-step form can be replaced too. It gets the visible steps, each with `index`, `number`, `id`, `title`, `status` (`"complete"`, `"current"` or `"upcoming"`) and `reachable` (already reached, so it can be clicked). Call `onSelect(item.index)` to go to a step; jumping forward still validates the current step.
+
+```tsx
+"use client";
+import { FormBuilder, type FormBuilderProps, type StepperProps } from "@nodari-pruidze/form-builder-js/react";
+
+function MyStepper({ items, onSelect, label }: StepperProps) {
+  return (
+    <nav aria-label={label}>
+      <ol className="flex items-center gap-2">
+        {items.map((item) => (
+          <li key={item.id}>
+            <button
+              type="button"
+              disabled={!item.reachable}
+              aria-current={item.status === "current" ? "step" : undefined}
+              onClick={() => onSelect(item.index)}
+              className={item.status === "current" ? "font-semibold" : "text-gray-500"}
+            >
+              {item.status === "complete" ? "✓" : item.number} {item.title}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
+export function MyForm(props: FormBuilderProps) {
+  return <FormBuilder {...props} stepper={MyStepper} />;
+}
+```
+
+To hide the stepper, pass `stepper={() => null}`.
+
 ## API
 
 From `@nodari-pruidze/form-builder-js` (no React, safe on the server):
@@ -257,10 +451,11 @@ From `@nodari-pruidze/form-builder-js/react`:
 
 | Export | |
 |---|---|
-| `<FormBuilder form onSubmit messages? classNames? components? />` | The form. |
+| `<FormBuilder form onSubmit messages? classNames? components? stepper? />` | The form. |
 | `FieldInput` | The built-in input, handy to wrap. |
+| `Stepper` | The built-in stepper, handy to wrap. |
 | `defaultClassNames` | All default Tailwind classes. |
-| Types | `FormBuilderProps`, `FieldComponentProps`, `FieldComponents`, `FormClassNames`. |
+| Types | `FormBuilderProps`, `FieldComponentProps`, `FieldComponents`, `StepperProps`, `StepperItem`, `FormClassNames`. |
 
 ## Behaviour notes
 
