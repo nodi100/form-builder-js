@@ -1,0 +1,87 @@
+{
+  "layout": "sections",
+  "steps": [
+    {
+      "id": "applicant",
+      "title": "1. Applicant",
+      "fields": [
+        {
+          "name": "applicant",
+          "label": "Personal number",
+          "type": "custom",
+          "component": "verifyPerson",
+          "isRequired": true,
+          "description": "Enter 11 digits and press Verify. Try 01001012345.",
+          "buttonText": "Verify"
+        },
+        { "name": "phone", "label": "Mobile phone", "type": "tel", "isRequired": true, "width": "half", "placeholder": "5XXXXXXXX", "validation": { "pattern": "^5\\d{8}$", "message": "9 digits, starting with 5" } },
+        { "name": "email", "label": "Email", "type": "email", "width": "half" },
+        { "name": "birthDate", "label": "Date of birth", "type": "date", "isRequired": true, "width": "half", "validation": { "min": "1900-01-01", "max": "today" } },
+        { "name": "applicationDate", "label": "Application date", "type": "date", "width": "half", "defaultValue": "today", "readOnly": true }
+      ]
+    },
+    {
+      "id": "address",
+      "title": "2. Address",
+      "fields": [
+        { "name": "legalAddress", "label": "Legal address", "type": "text", "isRequired": true },
+        { "name": "sameAddress", "label": "The actual address is the same as the legal address", "type": "checkbox", "defaultValue": true },
+        { "name": "actualAddress", "label": "Actual address", "type": "text", "isRequired": true, "showWhen": { "field": "sameAddress", "notEquals": true } }
+      ]
+    },
+    {
+      "id": "farm",
+      "title": "3. Farm",
+      "fields": [
+        {
+          "name": "species",
+          "label": "Species",
+          "type": "select",
+          "isRequired": true,
+          "width": "half",
+          "options": [
+            { "label": "Cattle", "value": "cattle" },
+            { "label": "Sheep", "value": "sheep" },
+            { "label": "Other", "value": "other" }
+          ]
+        },
+        { "name": "headCount", "label": "Number of animals", "type": "number", "isRequired": true, "width": "half", "validation": { "min": 1, "integer": true } },
+        { "name": "speciesOther", "label": "Which species?", "type": "text", "isRequired": true, "showWhen": { "field": "species", "equals": "other" } },
+        {
+          "name": "stalls",
+          "label": "Stalls",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "addLabel": "Add stall",
+          "removeLabel": "Remove stall",
+          "fields": [
+            { "name": "code", "label": "Stall code", "type": "text", "isRequired": true, "width": "half" },
+            { "name": "capacity", "label": "Capacity", "type": "number", "isRequired": true, "width": "half", "validation": { "min": 1, "integer": true } },
+            { "name": "hasWater", "label": "Has running water", "type": "checkbox" },
+            { "name": "waterSource", "label": "Water source", "type": "text", "isRequired": true, "showWhen": { "field": "hasWater", "equals": true } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "documents",
+      "title": "4. Documents",
+      "description": "PDF or image, up to 5 MB each.",
+      "fields": [
+        { "name": "idCard", "label": "ID card copy", "type": "file", "isRequired": true, "accept": ".pdf,image/*", "maxSizeMb": 5 },
+        { "name": "hasVetCert", "label": "I have a veterinary certificate", "type": "checkbox" },
+        { "name": "vetCert", "label": "Veterinary certificate", "type": "file", "isRequired": true, "accept": ".pdf,image/*", "maxSizeMb": 5, "showWhen": { "field": "hasVetCert", "equals": true } },
+        { "name": "photos", "label": "Photos of the farm", "type": "file", "multiple": true, "accept": "image/*", "maxSizeMb": 5 }
+      ]
+    },
+    {
+      "id": "terms",
+      "title": "5. Terms",
+      "fields": [
+        { "name": "termInfo", "label": "Fee and term", "type": "info", "text": "The service is free.\nA decision is made within 10 working days." },
+        { "name": "agree", "label": "I confirm the information above is correct", "type": "checkbox", "isRequired": true }
+      ]
+    }
+  ]
+}

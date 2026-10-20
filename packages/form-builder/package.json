@@ -1,7 +1,7 @@
 {
   "name": "@nodari-pruidze/form-builder-js",
-  "version": "0.2.0",
-  "description": "JSON-driven React forms with Zod validation, conditional fields, multi-step wizards and server-side re-validation. Styled with Tailwind CSS v4.",
+  "version": "0.3.0",
+  "description": "JSON-driven React forms with Zod validation, conditional fields, multi-step wizards or one-page sections, file uploads, repeating groups and server-side re-validation. Styled with Tailwind CSS v4.",
   "license": "MIT",
   "author": "Nodari Pruidze",
   "repository": {

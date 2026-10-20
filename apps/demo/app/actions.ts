@@ -19,3 +19,32 @@ export async function submitJobApplication(values: FormValues): Promise<SubmitRe
 
   return { success: true, message: "Application submitted!" };
 }
+
+export async function submitFarmRegistration(values: FormValues): Promise<SubmitResult> {
+  const form = await getFormSchema("farm-registration");
+  const result = validateFormValues(form, values, {
+    timeZone: "Asia/Tbilisi",
+    customValidators: {
+      // sync shape check; a real app re-verifies against the registry below
+      verifyPerson: (value) => {
+        const person = value as { personalNumber?: unknown; fullName?: unknown };
+        return typeof person.personalNumber === "string" &&
+          /^\d{11}$/.test(person.personalNumber) &&
+          typeof person.fullName === "string"
+          ? undefined
+          : "Verify the personal number";
+      },
+    },
+  });
+
+  if (!result.success) {
+    return { success: false, fieldErrors: result.fieldErrors };
+  }
+
+  // A real app would now, before saving:
+  // - look the personal number up in the registry again (async)
+  // - look up every file id in its upload store and check owner, size and type
+  console.log("Valid farm registration with fields:", Object.keys(result.data));
+
+  return { success: true, message: "Registration submitted!" };
+}
