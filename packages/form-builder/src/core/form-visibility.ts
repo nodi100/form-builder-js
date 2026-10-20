@@ -5,12 +5,13 @@ import type {
   FormStep,
   FormValues,
 } from "./types";
+import { isEmptyValue } from "./values";
 
 export function indexByName(fields: FieldSchema[]): Record<string, FieldSchema> {
   return Object.fromEntries(fields.map((f) => [f.name, f]));
 }
 
-/** All fields of all steps, in order */
+/** All fields of all steps, in order (an `array` field's own `fields` stay inside it) */
 export function flattenSteps(form: FormDefinition): FieldSchema[] {
   return form.steps.flatMap((step) => step.fields);
 }
@@ -21,10 +22,24 @@ export function toConditions(showWhen: Condition | Condition[] | undefined): Con
   return Array.isArray(showWhen) ? showWhen : [showWhen];
 }
 
+function isOneOf(expected: string | boolean | string[], current: unknown) {
+  return Array.isArray(expected) ? expected.includes(current as string) : current === expected;
+}
+
+/** Does one condition match the value of the field it points at? */
+export function conditionMatches(condition: Condition, current: unknown): boolean {
+  if (condition.notEmpty) return !isEmptyValue(current);
+  if (condition.notEquals !== undefined) return !isOneOf(condition.notEquals, current);
+  return condition.equals !== undefined && isOneOf(condition.equals, current);
+}
+
 /**
  * A field is visible when it has no `showWhen`, or when every condition
  * matches AND each condition's parent field is visible. The parent check
- * makes chains work: if A hides B, then C (which depends on B) is hidden too.
+ * makes chains work: if A hides B, then C (which depends on B) is hidden too,
+ * whatever the condition (even `notEquals`).
+ *
+ * Inside an `array` row, pass the row's values and the row's fields.
  */
 export function isFieldVisible(
   field: FieldSchema,
@@ -43,11 +58,7 @@ export function isFieldVisible(
   return conditions.every((condition) => {
     const parent = byName[condition.field];
     if (parent && !isFieldVisible(parent, values, byName, path)) return false;
-
-    const current = values[condition.field];
-    return Array.isArray(condition.equals)
-      ? condition.equals.includes(current as string)
-      : current === condition.equals;
+    return conditionMatches(condition, values[condition.field]);
   });
 }
 

@@ -5,8 +5,8 @@ Package docs (install, JSON format, customizing): [packages/form-builder/README.
 
 ```
 packages/form-builder/   the published package
-  src/core/              no React: types, parseFormSchema, validateFormValues, Zod schema, visibility, messages
-  src/react/             FormBuilder, Stepper, FormField, FieldInput, classNames
+  src/core/              no React: types, parseFormSchema, validateFormValues, Zod schema, visibility, defaults, messages
+  src/react/             FormBuilder, Stepper, Fields (lists, arrays, info), FormField, FieldInput, FileInput, classNames
   test/                  vitest (core in node, components in jsdom)
 apps/demo/               Next.js app using the package like any other project would
 .changeset/              pending version bumps
@@ -17,7 +17,7 @@ apps/demo/               Next.js app using the package like any other project wo
 
 ```bash
 npm install
-npm run dev            # builds the package once, starts the demo on http://localhost:3000
+npm run dev            # builds the package once, starts the demo on http://localhost:3000 (wizard) and /farm (one-page sections)
 npm run dev:package    # in a second terminal: rebuild the package on every change
 npm test               # package tests
 npm run typecheck      # all workspaces
