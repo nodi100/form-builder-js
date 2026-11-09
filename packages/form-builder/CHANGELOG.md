@@ -1,5 +1,11 @@
 # @iteasa/form-builder-js
 
+## 0.4.0
+
+### Minor Changes
+
+- 2a66a5a: The package moved from `@nodari-pruidze/form-builder-js` to `@iteasa/form-builder-js`. Update your install and imports to the new name; the API is unchanged.
+
 ## 0.3.0
 
 ### Minor Changes
