@@ -1,5 +1,5 @@
 import "server-only";
-import { parseFormSchema, type FormDefinition } from "@nodari-pruidze/form-builder-js";
+import { parseFormSchema, type FormDefinition } from "@iteasa/form-builder-js";
 import jobApplication from "@/data/job-application.json";
 import farmRegistration from "@/data/farm-registration.json";
 

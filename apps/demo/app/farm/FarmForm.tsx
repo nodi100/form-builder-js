@@ -7,7 +7,7 @@ import {
   type FieldComponentProps,
   type FormBuilderProps,
   type UploadFile,
-} from "@nodari-pruidze/form-builder-js/react";
+} from "@iteasa/form-builder-js/react";
 
 type Person = { personalNumber: string; fullName: string };
 

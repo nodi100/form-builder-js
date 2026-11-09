@@ -1,4 +1,4 @@
-# @nodari-pruidze/form-builder-js
+# @iteasa/form-builder-js
 
 ## 0.3.0
 

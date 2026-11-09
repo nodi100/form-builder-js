@@ -10,7 +10,7 @@ permissions:
   contents: write
   pull-requests: write
   # npm Trusted Publishing: GitHub proves who is publishing, no npm token needed.
-  # Set up once on npmjs.com → @nodari-pruidze/form-builder-js → Settings → Trusted publishing.
+  # Set up once on npmjs.com → @iteasa/form-builder-js → Settings → Trusted publishing.
   id-token: write
 
 jobs:

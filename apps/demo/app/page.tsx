@@ -1,4 +1,4 @@
-import { FormBuilder } from "@nodari-pruidze/form-builder-js/react";
+import { FormBuilder } from "@iteasa/form-builder-js/react";
 import { getFormSchema } from "@/lib/get-form-schema";
 import { submitJobApplication } from "./actions";
 
