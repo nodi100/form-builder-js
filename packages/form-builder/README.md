@@ -1,4 +1,4 @@
-# @nodari-pruidze/form-builder-js
+# @iteasa/form-builder-js
 
 Build React forms from JSON. Includes Zod validation, conditional fields, multi-step wizards or one-page sectioned forms, file uploads, repeating groups, and server-side re-validation that uses the same schema.
 
@@ -28,11 +28,11 @@ It works in any React app. The examples below use the Next.js App Router.
 ## Install
 
 ```bash
-npm i @nodari-pruidze/form-builder-js react-hook-form zod @hookform/resolvers
+npm i @iteasa/form-builder-js react-hook-form zod @hookform/resolvers
 # or
-pnpm add @nodari-pruidze/form-builder-js react-hook-form zod @hookform/resolvers
+pnpm add @iteasa/form-builder-js react-hook-form zod @hookform/resolvers
 # or
-yarn add @nodari-pruidze/form-builder-js react-hook-form zod @hookform/resolvers
+yarn add @iteasa/form-builder-js react-hook-form zod @hookform/resolvers
 ```
 
 Tailwind only generates classes it finds in your source. Point it at the package in your main CSS file. Adjust the relative path to where your CSS file lives. The same path works with pnpm's symlinked `node_modules`.
@@ -40,7 +40,7 @@ Tailwind only generates classes it finds in your source. Point it at the package
 ```css
 /* app/globals.css */
 @import "tailwindcss";
-@source "../node_modules/@nodari-pruidze/form-builder-js/dist";
+@source "../node_modules/@iteasa/form-builder-js/dist";
 ```
 
 ## Quick start (Next.js)
@@ -90,7 +90,7 @@ Tailwind only generates classes it finds in your source. Point it at the package
 ```ts
 // lib/get-form.ts
 import "server-only";
-import { parseFormSchema } from "@nodari-pruidze/form-builder-js";
+import { parseFormSchema } from "@iteasa/form-builder-js";
 import contact from "@/data/contact.json";
 
 export async function getForm() {
@@ -103,7 +103,7 @@ export async function getForm() {
 ```ts
 // app/actions.ts
 "use server";
-import { validateFormValues, type FormValues, type SubmitResult } from "@nodari-pruidze/form-builder-js";
+import { validateFormValues, type FormValues, type SubmitResult } from "@iteasa/form-builder-js";
 import { getForm } from "@/lib/get-form";
 
 export async function submitContact(values: FormValues): Promise<SubmitResult> {
@@ -116,11 +116,11 @@ export async function submitContact(values: FormValues): Promise<SubmitResult> {
 }
 ```
 
-**4. Render it.** `@nodari-pruidze/form-builder-js/react` is already marked `"use client"`:
+**4. Render it.** `@iteasa/form-builder-js/react` is already marked `"use client"`:
 
 ```tsx
 // app/page.tsx (a server component)
-import { FormBuilder } from "@nodari-pruidze/form-builder-js/react";
+import { FormBuilder } from "@iteasa/form-builder-js/react";
 import { getForm } from "@/lib/get-form";
 import { submitContact } from "./actions";
 
@@ -373,7 +373,7 @@ Every piece of text can be overridden. Templates use `{placeholders}`. **Pass th
 
 ```ts
 // lib/messages.ts
-import type { FormMessages } from "@nodari-pruidze/form-builder-js";
+import type { FormMessages } from "@iteasa/form-builder-js";
 
 export const messagesKa: Partial<FormMessages> = {
   required: "{label} სავალდებულოა",
@@ -452,7 +452,7 @@ Every part of the form has a named **slot** that holds its Tailwind classes. Pas
 **A slot you pass replaces the default, it doesn't add to it.** So `input: "h-12"` gives an input with *only* `h-12` (no border, no padding). To keep the default look and change one thing, build on `defaultClassNames`:
 
 ```tsx
-import { FormBuilder, defaultClassNames } from "@nodari-pruidze/form-builder-js/react";
+import { FormBuilder, defaultClassNames } from "@iteasa/form-builder-js/react";
 
 // keeps the default look, only makes inputs taller
 classNames={{ input: defaultClassNames.input + " h-12" }}
@@ -538,7 +538,7 @@ For a fully custom look (for example toggle switches), use your own component, s
 
 ```tsx
 "use client";
-import { FieldInput, FormBuilder, type FieldComponentProps, type FormBuilderProps } from "@nodari-pruidze/form-builder-js/react";
+import { FieldInput, FormBuilder, type FieldComponentProps, type FormBuilderProps } from "@iteasa/form-builder-js/react";
 
 function TextInput(props: FieldComponentProps) {
   if (props.field.name !== "fullName") return <FieldInput {...props} />;
@@ -560,7 +560,7 @@ Components are functions, so in Next.js pass them from a client component:
 ```tsx
 // components/MyForm.tsx
 "use client";
-import { FormBuilder, type FieldComponentProps, type FormBuilderProps } from "@nodari-pruidze/form-builder-js/react";
+import { FormBuilder, type FieldComponentProps, type FormBuilderProps } from "@iteasa/form-builder-js/react";
 
 function MyTextInput({ id, register, aria, hasError }: FieldComponentProps) {
   return <input id={id} {...register} {...aria} className={hasError ? "my-input my-input--error" : "my-input"} />;
@@ -601,8 +601,8 @@ A `"type": "custom"` field renders the component registered under its `component
 "use client";
 import { useState } from "react";
 import { useController } from "react-hook-form";
-import type { CustomFieldSchema } from "@nodari-pruidze/form-builder-js";
-import { FormBuilder, type FieldComponentProps, type FormBuilderProps } from "@nodari-pruidze/form-builder-js/react";
+import type { CustomFieldSchema } from "@iteasa/form-builder-js";
+import { FormBuilder, type FieldComponentProps, type FormBuilderProps } from "@iteasa/form-builder-js/react";
 
 function VerifyPerson({ field, name, control, id, aria, classNames, hasError, disabled, readOnly }: FieldComponentProps) {
   const { field: f } = useController({ control, name });
@@ -650,7 +650,7 @@ Validators are synchronous, like the rest of `validateFormValues`. Checks that n
 
 ```tsx
 "use client";
-import { FormBuilder, type FormBuilderProps, type UploadFile } from "@nodari-pruidze/form-builder-js/react";
+import { FormBuilder, type FormBuilderProps, type UploadFile } from "@iteasa/form-builder-js/react";
 
 const uploadFile: UploadFile = async (file, field, { onProgress }) => {
   const body = new FormData();
@@ -687,7 +687,7 @@ The stepper of a multi-step form can be replaced too. It gets the visible steps,
 
 ```tsx
 "use client";
-import { FormBuilder, type FormBuilderProps, type StepperProps } from "@nodari-pruidze/form-builder-js/react";
+import { FormBuilder, type FormBuilderProps, type StepperProps } from "@iteasa/form-builder-js/react";
 
 function MyStepper({ items, onSelect, label }: StepperProps) {
   return (
@@ -720,7 +720,7 @@ To hide the stepper, pass `stepper={() => null}`.
 
 ## API
 
-From `@nodari-pruidze/form-builder-js` (no React, safe on the server):
+From `@iteasa/form-builder-js` (no React, safe on the server):
 
 | Export | |
 |---|---|
@@ -733,7 +733,7 @@ From `@nodari-pruidze/form-builder-js` (no React, safe on the server):
 | `defaultMessages`, `resolveMessages`, `formatMessage` | Text helpers. |
 | Types | `FormDefinition`, `FormLayout`, `FormStep`, `FieldSchema`, `CustomFieldSchema`, `Condition`, `UploadedFile`, `FormValues`, `SubmitResult`, `FormMessages`, `CustomValidator`, `ValidateOptions` and more. |
 
-From `@nodari-pruidze/form-builder-js/react`:
+From `@iteasa/form-builder-js/react`:
 
 | Export | |
 |---|---|
