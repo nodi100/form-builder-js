@@ -34,6 +34,14 @@
       "title": "3. Farm",
       "fields": [
         {
+          "name": "region",
+          "label": "Region",
+          "type": "custom",
+          "component": "remoteSelect",
+          "isRequired": true,
+          "endpoint": "/api/regions"
+        },
+        {
           "name": "species",
           "label": "Species",
           "type": "select",

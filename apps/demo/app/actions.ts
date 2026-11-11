@@ -2,6 +2,7 @@
 
 import { validateFormValues, type FormValues, type SubmitResult } from "@iteasa/form-builder-js";
 import { getFormSchema } from "@/lib/get-form-schema";
+import { regions } from "@/lib/regions";
 
 export async function submitJobApplication(values: FormValues): Promise<SubmitResult> {
   // every step is validated at once; a multi-step form is still one submit
@@ -34,6 +35,9 @@ export async function submitFarmRegistration(values: FormValues): Promise<Submit
           ? undefined
           : "Verify the personal number";
       },
+      // the client list is only a convenience: check the value against the real source
+      remoteSelect: (value) =>
+        regions.some((r) => r.value === value) ? undefined : "Choose a region from the list",
     },
   });
 
