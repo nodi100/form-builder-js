@@ -4,7 +4,7 @@ Build React forms from JSON. Includes Zod validation, conditional fields, multi-
 
 - **One JSON schema** drives the UI, the client validation and the server validation.
 - **Conditional fields and steps** (`showWhen` with `equals`, `notEquals`, `notEmpty`). Hidden fields are never validated and are dropped from the submitted data.
-- **Multi-step wizards** (each step validated on "Next", `?step=` in the URL) **or one-page forms split into sections** (`layout: "sections"`).
+- **Multi-step wizards** (each step validated on "Next", `?step=` in the URL) **or one-page forms split into sections** (`layout: "sections"`), optionally collapsible (`layout: "accordion"`).
 - **Field types:** text, email, tel, number, textarea, date, select, radio, checkbox, file (uploaded as soon as it's chosen), repeating groups (`array`), display-only `info` blocks, and your own `custom` components.
 - **Prefill and review:** `defaultValue` per field, `defaultValues` for the whole form, `readOnly` fields, and a `disabled` form for reviewers.
 - **Accessible** labels, fieldsets, `aria-invalid`/`aria-describedby` and live status messages. After a failed submit the first invalid field is focused.
@@ -133,7 +133,7 @@ If `fieldErrors` comes back from the server, each message is shown under its fie
 
 ## Form JSON
 
-A form can be written in three ways.
+A form can be written in four ways.
 
 **1. A plain array of fields: a simple one-page form.** No steps, no stepper, no Back/Next buttons, just the fields and a Submit button:
 
@@ -212,15 +212,38 @@ A `steps` object with **one** step is also a one-page form, like the plain array
 }
 ```
 
-All three formats are loaded the same way, with `parseFormSchema`, and conditional fields (`showWhen`) work in all of them. Without `layout` (or with `"layout": "wizard"`) a form with several steps is a wizard, exactly as before.
+**4. `"layout": "accordion"`: sections that expand on click.** Same as `"sections"`, but each section is collapsed behind a header with its title, its `description` as a subtitle and an arrow. Clicking the header shows or hides the section's fields. Every section needs a `title`; set `"defaultOpen": true` on a step to start it expanded (all are collapsed by default). Collapsed fields keep their values and are still validated and submitted. After a failed submit, every section that has an error opens, so the first invalid field can be focused:
+
+```json
+{
+  "layout": "accordion",
+  "steps": [
+    {
+      "id": "applicant",
+      "title": "1. Applicant",
+      "description": "Who is applying",
+      "defaultOpen": true,
+      "fields": [{ "name": "fullName", "label": "Full name", "type": "text", "isRequired": true }]
+    },
+    {
+      "id": "address",
+      "title": "2. Address",
+      "fields": [{ "name": "legalAddress", "label": "Legal address", "type": "text", "isRequired": true }]
+    }
+  ]
+}
+```
+
+All four formats are loaded the same way, with `parseFormSchema`, and conditional fields (`showWhen`) work in all of them. Without `layout` (or with `"layout": "wizard"`) a form with several steps is a wizard, exactly as before.
 
 ### Step
 
 | Key | Type | |
 |---|---|---|
 | `id` | string | Unique. Shown in the URL as `?step=id` (wizard only). |
-| `title` | string | Required when a **wizard** has more than one step. Optional in `sections`. |
-| `description` | string | Optional text under the title. |
+| `title` | string | Required when a **wizard** has more than one step, and on every step of an `accordion`. Optional in `sections`. |
+| `description` | string | Optional subtitle under the title (in `accordion`: inside the clickable header). |
+| `defaultOpen` | boolean | `accordion` only: start the section expanded. Default `false`. |
 | `showWhen` | condition or condition[] | Skip the whole step / section unless it matches. Can only depend on fields from **earlier** steps. |
 | `fields` | field[] | At least one. |
 
@@ -410,6 +433,13 @@ Every part of the form has a named **slot** that holds its Tailwind classes. Pas
 | | `sectionHeader` | The wrapper around a section's title and description |
 | | `sectionTitle` | The section title (an `<h2>`) |
 | | `sectionDescription` | The text under the section title |
+| Accordion | `accordion` | A step's `<fieldset>` in `layout: "accordion"` |
+| | `accordionHeader` | The clickable header (a `<button>` inside the `<h2>`) |
+| | `accordionTitle` | The section title inside the header |
+| | `accordionDescription` | The subtitle (the step's `description`) inside the header |
+| | `accordionIcon` | The arrow of a collapsed section |
+| | `accordionIconOpen` | The arrow of an expanded section (rotated) |
+| | `accordionPanel` | The wrapper around the fields of a section |
 | Labels | `label` | The label above an input |
 | | `legend` | The label of a radio group or an array |
 | | `required` | The `*` after a required field's label |

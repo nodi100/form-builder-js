@@ -489,6 +489,20 @@ describe("layout", () => {
     expect(() => parse({ layout: "tabs", steps: [{ id: "a", fields: [text("x")] }] })).toThrow();
   });
 
+  it("accordion: requires a title on every section; defaultOpen only in accordion", () => {
+    const form = parse({
+      layout: "accordion",
+      steps: [{ id: "a", title: "A", defaultOpen: true, fields: [text("x")] }],
+    });
+    expect(form.layout).toBe("accordion");
+    expect(form.steps[0].defaultOpen).toBe(true);
+
+    expect(() => parse({ layout: "accordion", steps: [{ id: "a", fields: [text("x")] }] })).toThrow(/needs a title/);
+    expect(() =>
+      parse({ layout: "sections", steps: [{ id: "a", title: "A", defaultOpen: true, fields: [text("x")] }] })
+    ).toThrow(/only supported with layout "accordion"/);
+  });
+
   it("drops fields of hidden sections", () => {
     const form = parse({
       layout: "sections",

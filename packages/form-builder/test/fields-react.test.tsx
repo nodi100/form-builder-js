@@ -87,6 +87,70 @@ describe("layout: sections", () => {
   });
 });
 
+describe("layout: accordion", () => {
+  const accordionForm = parseFormSchema("accordion", {
+    layout: "accordion",
+    steps: [
+      {
+        id: "legal",
+        title: "1. Legal address",
+        description: "As registered",
+        defaultOpen: true,
+        fields: [
+          { name: "legalAddress", label: "Legal address", type: "text", isRequired: true },
+          { name: "same", label: "Actual address is the same", type: "checkbox" },
+        ],
+      },
+      {
+        id: "actual",
+        title: "2. Actual address",
+        showWhen: { field: "same", notEquals: true },
+        fields: [{ name: "actualAddress", label: "Actual address", type: "text", isRequired: true }],
+      },
+    ],
+  });
+  const header = (name: RegExp) => screen.getByRole("button", { name });
+
+  it("shows title and subtitle in the header and toggles the fields on click", () => {
+    render(<FormBuilder form={accordionForm} onSubmit={ok} />);
+
+    expect(header(/1\. Legal address/).textContent).toContain("As registered");
+    expect(header(/1\. Legal address/).getAttribute("aria-expanded")).toBe("true");
+    expect(header(/2\. Actual address/).getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByLabelText(/Actual address \*/).closest("[hidden]")).toBeTruthy();
+
+    fireEvent.click(header(/2\. Actual address/));
+    expect(header(/2\. Actual address/).getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByLabelText(/Actual address \*/).closest("[hidden]")).toBeNull();
+
+    fireEvent.click(header(/1\. Legal address/));
+    expect(screen.getByLabelText(/^Legal address/).closest("[hidden]")).toBeTruthy();
+  });
+
+  it("keeps values of collapsed sections and submits them", async () => {
+    const onSubmit = vi.fn(ok);
+    render(<FormBuilder form={accordionForm} onSubmit={onSubmit} />);
+    fireEvent.change(screen.getByLabelText(/^Legal address/), { target: { value: "Tbilisi" } });
+    fireEvent.click(header(/1\. Legal address/));
+    fireEvent.change(screen.getByLabelText(/Actual address \*/), { target: { value: "Batumi" } });
+    submit();
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({ legalAddress: "Tbilisi", same: false, actualAddress: "Batumi" })
+    );
+  });
+
+  it("expands collapsed sections that have errors", async () => {
+    const onSubmit = vi.fn(ok);
+    render(<FormBuilder form={accordionForm} onSubmit={onSubmit} />);
+    fireEvent.change(screen.getByLabelText(/^Legal address/), { target: { value: "Tbilisi" } });
+    submit();
+
+    expect(await screen.findByText("Actual address is required")).toBeTruthy();
+    expect(header(/2\. Actual address/).getAttribute("aria-expanded")).toBe("true");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
 describe("field options", () => {
   const form = parseFormSchema("opts", [
     { name: "pn", label: "Personal number", type: "text", readOnly: true, description: "11 digits" },
