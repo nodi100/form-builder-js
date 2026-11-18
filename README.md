@@ -17,7 +17,7 @@ apps/demo/               Next.js app using the package like any other project wo
 
 ```bash
 npm install
-npm run dev            # builds the package once, starts the demo on http://localhost:3000 (wizard) and /farm (one-page sections)
+npm run dev            # builds the package once, starts the demo on http://localhost:3000 (wizard), /farm (one-page sections) and /accordion (collapsible sections)
 npm run dev:package    # in a second terminal: rebuild the package on every change
 npm test               # package tests
 npm run typecheck      # all workspaces

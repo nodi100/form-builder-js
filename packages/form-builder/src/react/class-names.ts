@@ -72,6 +72,20 @@ export const defaultClassNames = {
   sectionTitle: "text-lg font-semibold",
   sectionDescription: "text-sm text-gray-600",
 
+  /** a step's <fieldset> in `layout: "accordion"` */
+  accordion: "min-w-0 rounded-md border border-gray-200",
+  /** the clickable header (a <button> inside the <h2>) */
+  accordionHeader:
+    "flex w-full items-center justify-between gap-4 px-4 py-3 text-left outline-none transition hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-blue-500",
+  accordionTitle: "block text-lg font-semibold",
+  /** the subtitle (the step's `description`) inside the header */
+  accordionDescription: "mt-0.5 block text-sm font-normal text-gray-600",
+  /** the arrow icon; rotated by `accordionIconOpen` */
+  accordionIcon: "h-5 w-5 shrink-0 text-gray-500 transition-transform",
+  accordionIconOpen: "h-5 w-5 shrink-0 rotate-180 text-gray-500 transition-transform",
+  /** the fields of an open section */
+  accordionPanel: "border-t border-gray-200 p-4",
+
   statusSuccess: "text-sm text-green-600",
   statusError: "text-sm text-red-500",
   actions: "flex gap-3",

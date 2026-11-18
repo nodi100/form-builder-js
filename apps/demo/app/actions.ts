@@ -2,6 +2,7 @@
 
 import { validateFormValues, type FormValues, type SubmitResult } from "@iteasa/form-builder-js";
 import { getFormSchema } from "@/lib/get-form-schema";
+import { regions } from "@/lib/regions";
 
 export async function submitJobApplication(values: FormValues): Promise<SubmitResult> {
   // every step is validated at once; a multi-step form is still one submit
@@ -20,6 +21,20 @@ export async function submitJobApplication(values: FormValues): Promise<SubmitRe
   return { success: true, message: "Application submitted!" };
 }
 
+export async function submitCompanyProfile(values: FormValues): Promise<SubmitResult> {
+  // collapsed sections are validated like any other: the layout is only visual
+  const form = await getFormSchema("company-profile");
+  const result = validateFormValues(form, values);
+
+  if (!result.success) {
+    return { success: false, fieldErrors: result.fieldErrors };
+  }
+
+  console.log("Valid company profile with fields:", Object.keys(result.data));
+
+  return { success: true, message: "Company profile submitted!" };
+}
+
 export async function submitFarmRegistration(values: FormValues): Promise<SubmitResult> {
   const form = await getFormSchema("farm-registration");
   const result = validateFormValues(form, values, {
@@ -34,6 +49,9 @@ export async function submitFarmRegistration(values: FormValues): Promise<Submit
           ? undefined
           : "Verify the personal number";
       },
+      // the client list is only a convenience: check the value against the real source
+      remoteSelect: (value) =>
+        regions.some((r) => r.value === value) ? undefined : "Choose a region from the list",
     },
   });
 

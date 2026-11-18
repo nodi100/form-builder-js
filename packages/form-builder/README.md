@@ -4,7 +4,7 @@ Build React forms from JSON. Includes Zod validation, conditional fields, multi-
 
 - **One JSON schema** drives the UI, the client validation and the server validation.
 - **Conditional fields and steps** (`showWhen` with `equals`, `notEquals`, `notEmpty`). Hidden fields are never validated and are dropped from the submitted data.
-- **Multi-step wizards** (each step validated on "Next", `?step=` in the URL) **or one-page forms split into sections** (`layout: "sections"`).
+- **Multi-step wizards** (each step validated on "Next", `?step=` in the URL) **or one-page forms split into sections** (`layout: "sections"`), optionally collapsible (`layout: "accordion"`).
 - **Field types:** text, email, tel, number, textarea, date, select, radio, checkbox, file (uploaded as soon as it's chosen), repeating groups (`array`), display-only `info` blocks, and your own `custom` components.
 - **Prefill and review:** `defaultValue` per field, `defaultValues` for the whole form, `readOnly` fields, and a `disabled` form for reviewers.
 - **Accessible** labels, fieldsets, `aria-invalid`/`aria-describedby` and live status messages. After a failed submit the first invalid field is focused.
@@ -133,7 +133,7 @@ If `fieldErrors` comes back from the server, each message is shown under its fie
 
 ## Form JSON
 
-A form can be written in three ways.
+A form can be written in four ways.
 
 **1. A plain array of fields: a simple one-page form.** No steps, no stepper, no Back/Next buttons, just the fields and a Submit button:
 
@@ -212,15 +212,38 @@ A `steps` object with **one** step is also a one-page form, like the plain array
 }
 ```
 
-All three formats are loaded the same way, with `parseFormSchema`, and conditional fields (`showWhen`) work in all of them. Without `layout` (or with `"layout": "wizard"`) a form with several steps is a wizard, exactly as before.
+**4. `"layout": "accordion"`: sections that expand on click.** Same as `"sections"`, but each section is collapsed behind a header with its title, its `description` as a subtitle and an arrow. Clicking the header shows or hides the section's fields. Every section needs a `title`; set `"defaultOpen": true` on a step to start it expanded (all are collapsed by default). Collapsed fields keep their values and are still validated and submitted. After a failed submit, every section that has an error opens, so the first invalid field can be focused:
+
+```json
+{
+  "layout": "accordion",
+  "steps": [
+    {
+      "id": "applicant",
+      "title": "1. Applicant",
+      "description": "Who is applying",
+      "defaultOpen": true,
+      "fields": [{ "name": "fullName", "label": "Full name", "type": "text", "isRequired": true }]
+    },
+    {
+      "id": "address",
+      "title": "2. Address",
+      "fields": [{ "name": "legalAddress", "label": "Legal address", "type": "text", "isRequired": true }]
+    }
+  ]
+}
+```
+
+All four formats are loaded the same way, with `parseFormSchema`, and conditional fields (`showWhen`) work in all of them. Without `layout` (or with `"layout": "wizard"`) a form with several steps is a wizard, exactly as before.
 
 ### Step
 
 | Key | Type | |
 |---|---|---|
 | `id` | string | Unique. Shown in the URL as `?step=id` (wizard only). |
-| `title` | string | Required when a **wizard** has more than one step. Optional in `sections`. |
-| `description` | string | Optional text under the title. |
+| `title` | string | Required when a **wizard** has more than one step, and on every step of an `accordion`. Optional in `sections`. |
+| `description` | string | Optional subtitle under the title (in `accordion`: inside the clickable header). |
+| `defaultOpen` | boolean | `accordion` only: start the section expanded. Default `false`. |
 | `showWhen` | condition or condition[] | Skip the whole step / section unless it matches. Can only depend on fields from **earlier** steps. |
 | `fields` | field[] | At least one. |
 
@@ -232,7 +255,7 @@ All three formats are loaded the same way, with `parseFormSchema`, and condition
 | `label` | string | Required, except for `info`. |
 | `type` | see [Field types](#field-types) | `text`, `email`, `tel`, `number`, `textarea`, `date`, `select`, `radio`, `checkbox`, `file`, `custom`, `array`, `info` |
 | `isRequired` | boolean | A required checkbox must be checked; a required array needs at least one row. |
-| `options` | `{ label, value }[]` | Required for `select` / `radio`. |
+| `options` | `{ label, value }[]` | Required for `select` / `radio`. Fixed in the JSON. For a `select` whose options come from an API, see [Select with options from an API](#select-with-options-from-an-api). |
 | `placeholder` | string | |
 | `description` | string | Help text under the label, linked with `aria-describedby`. |
 | `width` | `"full" \| "half"` | `"half"` puts two fields side by side on wider screens. Default `"full"`. |
@@ -410,6 +433,13 @@ Every part of the form has a named **slot** that holds its Tailwind classes. Pas
 | | `sectionHeader` | The wrapper around a section's title and description |
 | | `sectionTitle` | The section title (an `<h2>`) |
 | | `sectionDescription` | The text under the section title |
+| Accordion | `accordion` | A step's `<fieldset>` in `layout: "accordion"` |
+| | `accordionHeader` | The clickable header (a `<button>` inside the `<h2>`) |
+| | `accordionTitle` | The section title inside the header |
+| | `accordionDescription` | The subtitle (the step's `description`) inside the header |
+| | `accordionIcon` | The arrow of a collapsed section |
+| | `accordionIconOpen` | The arrow of an expanded section (rotated) |
+| | `accordionPanel` | The wrapper around the fields of a section |
 | Labels | `label` | The label above an input |
 | | `legend` | The label of a radio group or an array |
 | | `required` | The `*` after a required field's label |
@@ -643,6 +673,75 @@ const result = validateFormValues(form, values, {
 ```
 
 Validators are synchronous, like the rest of `validateFormValues`. Checks that need I/O (asking the registry again, which you should do, since the client's lookup result can be forged) go in your server action after `validateFormValues` succeeds; return their errors as `fieldErrors` keyed by the field name. You can pass the same `customValidators` to `<FormBuilder customValidators={...}>` (from a client component) to show the error before submitting.
+
+### Select with options from an API
+
+The built-in `select` has fixed `options`. To load them from an API, use a `custom` field. The JSON carries the URL in an extra key, and your component fetches it:
+
+```json
+{ "name": "region", "label": "Region", "type": "custom", "component": "remoteSelect",
+  "isRequired": true, "endpoint": "/api/regions" }
+```
+
+The endpoint answers a `GET` with `[{ "label": "Tbilisi", "value": "tbilisi" }, ...]`. The value of the field is the chosen `value` string.
+
+```tsx
+"use client";
+import { useEffect, useState } from "react";
+import { useController } from "react-hook-form";
+import type { CustomFieldSchema } from "@iteasa/form-builder-js";
+import { FormBuilder, type FieldComponentProps, type FormBuilderProps } from "@iteasa/form-builder-js/react";
+
+type Option = { label: string; value: string };
+
+function RemoteSelect({ field, name, control, id, aria, classNames, messages, hasError, disabled, readOnly }: FieldComponentProps) {
+  const { field: f } = useController({ control, name });
+  const endpoint = (field as CustomFieldSchema).endpoint as string;
+  const [options, setOptions] = useState<Option[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [attempt, setAttempt] = useState(0); // bump to retry
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setStatus("loading");
+    fetch(endpoint, { signal: controller.signal })
+      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json() as Promise<Option[]>; })
+      .then((data) => { setOptions(data); setStatus("ready"); })
+      .catch((e) => { if (e.name !== "AbortError") setStatus("error"); });
+    return () => controller.abort();
+  }, [endpoint, attempt]);
+
+  if (status === "error") {
+    return <button type="button" onClick={() => setAttempt((n) => n + 1)}>Could not load options. Retry</button>;
+  }
+  return (
+    <select ref={f.ref} id={id} {...aria}
+      value={typeof f.value === "string" ? f.value : ""}
+      onChange={(e) => f.onChange(e.target.value)} onBlur={f.onBlur}
+      disabled={disabled || readOnly || status === "loading"}
+      className={hasError ? classNames.inputError : classNames.input}>
+      <option value="" disabled>{status === "loading" ? "Loading..." : field.placeholder ?? messages.selectPlaceholder}</option>
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+}
+
+export function MyForm(props: FormBuilderProps) {
+  return <FormBuilder {...props} components={{ custom: { remoteSelect: RemoteSelect } }} />;
+}
+```
+
+The server does not know the options, so it only checks `isRequired` unless you add a validator. **Check the value against your real data**, because the client's list can be forged:
+
+```ts
+const result = validateFormValues(form, values, {
+  customValidators: {
+    remoteSelect: (value) => (allowedRegions.includes(value as string) ? undefined : "Choose a region from the list"),
+  },
+});
+```
+
+If the allowed values depend on the endpoint (`field.endpoint`), the validator gets `field` as its second argument. See the demo: `apps/demo/app/farm/FarmForm.tsx`.
 
 ### File uploads: `uploadFile`
 

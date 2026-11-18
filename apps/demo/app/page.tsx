@@ -11,7 +11,8 @@ export default async function Page() {
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h1 className="mb-1 text-xl font-semibold">Job application</h1>
         <p className="mb-6 text-sm text-gray-500">
-          A multi-step wizard. See also the <a href="/farm" className="underline">one-page sections form</a>.
+          A multi-step wizard. See also the <a href="/farm" className="underline">one-page sections form</a> and the{" "}
+          <a href="/accordion" className="underline">collapsible sections form</a>.
         </p>
         <FormBuilder form={form} onSubmit={submitJobApplication} />
       </div>

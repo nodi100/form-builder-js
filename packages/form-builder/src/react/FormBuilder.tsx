@@ -65,7 +65,9 @@ export function FormBuilder({
   timeZone,
 }: FormBuilderProps) {
   const { steps } = form;
-  const isSections = form.layout === "sections";
+  const isAccordion = form.layout === "accordion";
+  // "sections" and "accordion" show every step on one page
+  const isSections = form.layout === "sections" || isAccordion;
   const isWizard = !isSections && steps.length > 1;
 
   const m = useMemo(() => resolveMessages(messages), [messages]);
@@ -101,6 +103,17 @@ export function FormBuilder({
   // furthest step reached; the stepper can jump back to anything up to it
   const [furthest, setFurthest] = useState(0);
   const [uploads, setUploads] = useState(0);
+  // "accordion": ids of the expanded sections
+  const [openSections, setOpenSections] = useState<ReadonlySet<string>>(
+    () => new Set(steps.filter((s) => s.defaultOpen).map((s) => s.id))
+  );
+  const toggleSection = (id: string) =>
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const headingRef = useRef<HTMLHeadingElement>(null);
   const focusHeading = useRef(false);
   // server errors to focus once they are rendered
@@ -237,11 +250,19 @@ export function FormBuilder({
     goTo(index);
   };
 
-  /** Errors can belong to an earlier step (e.g. from the server): go there */
+  /** Errors can belong to an earlier step (e.g. from the server): go there.
+   *  In "accordion", expand every collapsed section that has an error. */
   const showFirstStepWithError = (paths: string[]) => {
-    if (isSections) return;
     const indexes = paths.map((path) => stepOf[path.split(".")[0]]).filter((i) => i !== undefined);
     if (!indexes.length) return;
+    if (isAccordion) {
+      const ids = indexes.map((i) => steps[i].id);
+      if (ids.some((id) => !openSections.has(id))) {
+        setOpenSections((prev) => new Set([...prev, ...ids]));
+      }
+      return;
+    }
+    if (isSections) return;
     const first = Math.min(...indexes);
     if (first !== current) goTo(first);
   };
@@ -336,7 +357,52 @@ export function FormBuilder({
   return (
     <FormBuilderContext.Provider value={context}>
       <form onSubmit={onFormSubmit} noValidate aria-disabled={disabled || undefined} className={cn.form}>
-        {isSections ? (
+        {isAccordion ? (
+          visibleSteps.map((index) => {
+            const section = steps[index];
+            const open = openSections.has(section.id);
+            const headingId = `section-${section.id}`;
+            const panelId = `section-${section.id}-panel`;
+            return (
+              <fieldset key={section.id} aria-labelledby={headingId} className={cn.accordion}>
+                <h2>
+                  <button
+                    type="button"
+                    id={headingId}
+                    aria-expanded={open}
+                    aria-controls={panelId}
+                    onClick={() => toggleSection(section.id)}
+                    className={cn.accordionHeader}
+                  >
+                    <span className="min-w-0">
+                      <span className={cn.accordionTitle}>{section.title}</span>
+                      {section.description && (
+                        <span className={cn.accordionDescription}>{section.description}</span>
+                      )}
+                    </span>
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className={open ? cn.accordionIconOpen : cn.accordionIcon}
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                </h2>
+                {/* collapsed fields stay mounted (hidden), so their values,
+                    uploads and errors survive closing the section */}
+                <div id={panelId} hidden={!open} className={cn.accordionPanel}>
+                  <FieldList fields={section.fields} values={values} byName={byName} />
+                </div>
+              </fieldset>
+            );
+          })
+        ) : isSections ? (
           visibleSteps.map((index) => {
             const section = steps[index];
             const headingId = `section-${section.id}`;

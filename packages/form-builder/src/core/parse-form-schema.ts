@@ -287,6 +287,7 @@ const stepSchema = z
     id: z.string().min(1),
     title: z.string().optional(),
     description: z.string().optional(),
+    defaultOpen: z.boolean().optional(),
     showWhen: showWhenSchema.optional(),
     fields: z.array(fieldSchema).min(1),
   })
@@ -294,7 +295,7 @@ const stepSchema = z
 
 const formSchema = z
   .object({
-    layout: z.enum(["wizard", "sections"]).optional(),
+    layout: z.enum(["wizard", "sections", "accordion"]).optional(),
     steps: z.array(stepSchema).min(1),
   })
   .strict()
@@ -309,9 +310,13 @@ const formSchema = z
       }
       stepIds.add(step.id);
 
-      // in "sections" a section without a title is fine
-      if (layout !== "sections" && steps.length > 1 && !step.title) {
+      // in "sections" a section without a title is fine; in "accordion" the
+      // title is what you click, so every section needs one
+      if (layout === "accordion" ? !step.title : layout !== "sections" && steps.length > 1 && !step.title) {
         issue(ctx, ["steps", s, "title"], `Step "${step.id}" needs a title`);
+      }
+      if (layout !== "accordion" && step.defaultOpen !== undefined) {
+        issue(ctx, ["steps", s, "defaultOpen"], `"defaultOpen" is only supported with layout "accordion"`);
       }
 
       step.fields.forEach((field, f) => {

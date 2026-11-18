@@ -128,9 +128,12 @@ export type UploadedFile = {
 
 export type FormStep = {
   id: string;
-  /** Required when a wizard has more than one step */
+  /** Required when a wizard has more than one step, and in "accordion" */
   title?: string;
+  /** Subtitle: shown under the title (in "accordion": inside the header) */
   description?: string;
+  /** "accordion" only: start expanded. Default false (collapsed). */
+  defaultOpen?: boolean;
   /** Skip the whole step unless this matches. May only depend on fields
    *  from earlier steps. */
   showWhen?: Condition | Condition[];
@@ -140,8 +143,10 @@ export type FormStep = {
 /**
  * "wizard" (default): one step per page, with a stepper and Back/Next.
  * "sections": every step on one page as a titled section, one Submit button.
+ * "accordion": like "sections", but each section collapses behind its title
+ * and opens on click.
  */
-export type FormLayout = "wizard" | "sections";
+export type FormLayout = "wizard" | "sections" | "accordion";
 
 /** A parsed form. A plain field array in JSON becomes a single step. */
 export type FormDefinition = {

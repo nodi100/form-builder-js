@@ -1,0 +1,54 @@
+{
+  "layout": "accordion",
+  "steps": [
+    {
+      "id": "company",
+      "title": "1. Company",
+      "description": "Registered name and identification code",
+      "defaultOpen": true,
+      "fields": [
+        { "name": "companyName", "label": "Company name", "type": "text", "isRequired": true },
+        { "name": "idCode", "label": "Identification code", "type": "text", "isRequired": true, "width": "half", "validation": { "pattern": "^\\d{9}$", "message": "9 digits" } },
+        { "name": "founded", "label": "Founded", "type": "date", "width": "half", "validation": { "max": "today" } }
+      ]
+    },
+    {
+      "id": "contact",
+      "title": "2. Contact person",
+      "description": "Who we should talk to about this application",
+      "fields": [
+        { "name": "contactName", "label": "Full name", "type": "text", "isRequired": true },
+        { "name": "contactPhone", "label": "Mobile phone", "type": "tel", "isRequired": true, "width": "half", "placeholder": "5XXXXXXXX", "validation": { "pattern": "^5\\d{8}$", "message": "9 digits, starting with 5" } },
+        { "name": "contactEmail", "label": "Email", "type": "email", "width": "half" }
+      ]
+    },
+    {
+      "id": "activity",
+      "title": "3. Activity",
+      "description": "What the company does",
+      "fields": [
+        {
+          "name": "sector",
+          "label": "Sector",
+          "type": "select",
+          "isRequired": true,
+          "options": [
+            { "label": "Agriculture", "value": "agriculture" },
+            { "label": "Manufacturing", "value": "manufacturing" },
+            { "label": "Services", "value": "services" },
+            { "label": "Other", "value": "other" }
+          ]
+        },
+        { "name": "sectorOther", "label": "Describe the sector", "type": "text", "isRequired": true, "showWhen": { "field": "sector", "equals": "other" } },
+        { "name": "employees", "label": "Number of employees", "type": "number", "width": "half", "validation": { "min": 0, "integer": true } }
+      ]
+    },
+    {
+      "id": "confirm",
+      "title": "4. Confirmation",
+      "fields": [
+        { "name": "agree", "label": "I confirm the information above is correct", "type": "checkbox", "isRequired": true }
+      ]
+    }
+  ]
+}

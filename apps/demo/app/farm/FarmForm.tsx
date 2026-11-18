@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useController } from "react-hook-form";
 import {
   FormBuilder,
@@ -58,6 +58,69 @@ function VerifyPerson({ field, name, control, id, aria, classNames, hasError, di
   );
 }
 
+type Option = { label: string; value: string };
+
+/** A `custom` field: a select whose options come from `field.endpoint` (GET → [{ label, value }]) */
+function RemoteSelect({ field, name, control, id, aria, classNames, messages, hasError, disabled, readOnly }: FieldComponentProps) {
+  const { field: f } = useController({ control, name });
+  const endpoint = (field as { endpoint?: string }).endpoint;
+  const [options, setOptions] = useState<Option[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    if (!endpoint) return;
+    const controller = new AbortController();
+    setStatus("loading");
+    fetch(endpoint, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        return res.json() as Promise<Option[]>;
+      })
+      .then((data) => {
+        setOptions(data);
+        setStatus("ready");
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") setStatus("error");
+      });
+    return () => controller.abort();
+  }, [endpoint, attempt]);
+
+  if (status === "error") {
+    return (
+      <div className="flex items-center gap-2">
+        <p className={classNames.error}>Could not load options</p>
+        <button type="button" onClick={() => setAttempt((n) => n + 1)} className={classNames.buttonSecondary}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <select
+      ref={f.ref}
+      id={id}
+      {...aria}
+      value={typeof f.value === "string" ? f.value : ""}
+      onChange={(e) => f.onChange(e.target.value)}
+      onBlur={f.onBlur}
+      disabled={disabled || readOnly || status === "loading"}
+      className={hasError ? classNames.inputError : classNames.input}
+    >
+      <option value="" disabled>
+        {status === "loading" ? "Loading…" : (field.placeholder ?? messages.selectPlaceholder)}
+      </option>
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 // stands in for a POST to your upload endpoint; reports fake progress
 const uploadFile: UploadFile = async (file, _field, { onProgress }) => {
   for (const step of [0.25, 0.5, 0.75, 1]) {
@@ -72,7 +135,7 @@ export function FarmForm(props: Omit<FormBuilderProps, "components" | "uploadFil
     <FormBuilder
       {...props}
       uploadFile={uploadFile}
-      components={{ custom: { verifyPerson: VerifyPerson } }}
+      components={{ custom: { verifyPerson: VerifyPerson, remoteSelect: RemoteSelect } }}
     />
   );
 }
