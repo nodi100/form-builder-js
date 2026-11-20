@@ -27,16 +27,23 @@ export function validateFormValues(
   rawValues: unknown,
   { messages, ...options }: ValidateOptions = {}
 ): ValidationResult {
-  const result = buildZodSchema(flattenSteps(form), messages, options).safeParse(rawValues);
+  return toValidationResult(
+    buildZodSchema(flattenSteps(form), messages, options).safeParse(rawValues)
+  );
+}
 
-  if (!result.success) {
-    const fieldErrors: Record<string, string> = {};
-    for (const issue of result.error.issues) {
-      const key = issue.path.length ? issue.path.map(String).join(".") : "_form";
-      fieldErrors[key] ??= issue.message; // keep the first error per field
-    }
-    return { success: false, fieldErrors };
+type ParseResult =
+  | { success: true; data: FormValues }
+  | { success: false; error: { issues: { path: PropertyKey[]; message: string }[] } };
+
+/** A Zod parse result as a ValidationResult, with one error per field path */
+export function toValidationResult(result: ParseResult): ValidationResult {
+  if (result.success) return { success: true, data: result.data };
+
+  const fieldErrors: Record<string, string> = {};
+  for (const issue of result.error.issues) {
+    const key = issue.path.length ? issue.path.map(String).join(".") : "_form";
+    fieldErrors[key] ??= issue.message; // keep the first error per field
   }
-
-  return { success: true, data: result.data };
+  return { success: false, fieldErrors };
 }

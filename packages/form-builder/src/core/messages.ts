@@ -34,6 +34,14 @@ export type FormMessages = {
   minItems: string;
   /** {max} */
   maxItems: string;
+  /** checkboxes with `minItems`. {min} */
+  minSelected: string;
+  /** checkboxes with `maxItems`. {max} */
+  maxSelected: string;
+
+  // describeValues — a checkbox's value in a summary
+  yes: string;
+  no: string;
 
   // UI — client only
   next: string;
@@ -55,6 +63,8 @@ export type FormMessages = {
   uploadFailed: string;
   /** {name} = file name */
   uploading: string;
+  /** Returned by the ref's validate() while a file is still uploading */
+  uploadsPending: string;
   /** Add-row button of an `array` field (unless it sets `addLabel`) */
   add: string;
   /** Remove button of an `array` row (unless it sets `removeLabel`) and of an uploaded file */
@@ -80,6 +90,11 @@ export const defaultMessages: FormMessages = {
   dateMax: "The date can't be after {max}",
   minItems: "Add at least {min}",
   maxItems: "Add at most {max}",
+  minSelected: "Pick at least {min}",
+  maxSelected: "Pick at most {max}",
+
+  yes: "Yes",
+  no: "No",
 
   next: "Next",
   back: "Back",
@@ -95,6 +110,7 @@ export const defaultMessages: FormMessages = {
   fileType: "{name} is not an allowed file type",
   uploadFailed: "{name} could not be uploaded. Please try again.",
   uploading: "Uploading {name}...",
+  uploadsPending: "Wait until the files finish uploading",
   add: "Add",
   remove: "Remove",
   arrayItem: "{label} #{number}",

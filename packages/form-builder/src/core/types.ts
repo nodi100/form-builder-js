@@ -8,6 +8,7 @@ export type FieldType =
   | "select"
   | "radio"
   | "checkbox"
+  | "checkboxes"
   | "file"
   | "custom"
   | "array"
@@ -25,11 +26,14 @@ export type JsonValue =
 export type Option = {
   label: string;
   value: string;
+  /** checkboxes only: ticking this option unticks every other one, and
+   *  ticking another option unticks this one (e.g. "None of these") */
+  exclusive?: boolean;
 };
 
 /**
  * Compares another field's current value. Exactly one of `equals`,
- * `notEquals` or `notEmpty` is set (parseFormSchema checks this).
+ * `notEquals`, `notEmpty` or `contains` is set (parseFormSchema checks this).
  */
 export type Condition = {
   /** Name of the field this one depends on (inside an `array` row: a
@@ -41,6 +45,9 @@ export type Condition = {
   notEquals?: string | boolean | string[];
   /** Matches when the field has a value (see isEmptyValue) */
   notEmpty?: true;
+  /** `checkboxes` fields only: matches when this option (or any of these)
+   *  is ticked */
+  contains?: string | string[];
 };
 
 export type FieldValidation = {
@@ -64,7 +71,7 @@ export type FieldSchema = {
   label: string;
   type: FieldType;
   isRequired?: boolean;
-  /** For select / radio */
+  /** For select / radio / checkboxes */
   options?: Option[];
   /** Dependency: field renders only when the condition matches
    *  (with an array, all conditions must match) */
@@ -79,6 +86,8 @@ export type FieldSchema = {
   readOnly?: boolean;
   /** Initial value, of the field's type */
   defaultValue?: JsonValue;
+  /** text / tel / number: a unit or short text shown after the input, e.g. "kg" */
+  suffix?: string;
 
   /** file: the input's `accept`, e.g. ".pdf,image/*" */
   accept?: string;
@@ -92,9 +101,10 @@ export type FieldSchema = {
 
   /** array: the fields of one row */
   fields?: FieldSchema[];
-  /** array: fewest rows (default 0, or 1 when isRequired) */
+  /** array: fewest rows (default 0, or 1 when isRequired).
+   *  checkboxes: fewest ticked options (default 0, or 1 when isRequired). */
   minItems?: number;
-  /** array: most rows */
+  /** array: most rows. checkboxes: most ticked options. */
   maxItems?: number;
   /** array: text of the "add row" button (default `messages.add`) */
   addLabel?: string;

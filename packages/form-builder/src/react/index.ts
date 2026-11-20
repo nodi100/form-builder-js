@@ -2,7 +2,7 @@
 // imported straight from a Next.js server component.
 
 export { FormBuilder } from "./FormBuilder";
-export type { FormBuilderProps } from "./FormBuilder";
+export type { FormBuilderHandle, FormBuilderProps, FormChangeInfo } from "./FormBuilder";
 export { FieldInput } from "./FieldInput";
 export { FileInput } from "./FileInput";
 export { Stepper } from "./Stepper";

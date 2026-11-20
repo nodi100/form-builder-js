@@ -57,6 +57,36 @@ function fieldType(field: FieldSchema, m: FormMessages, o: SchemaOptions): z.Zod
     case "checkbox":
       return z.boolean().optional();
 
+    case "checkboxes": {
+      const options = field.options ?? [];
+      const allowed = options.map((o) => o.value);
+      const exclusive = options.filter((o) => o.exclusive).map((o) => o.value);
+      return z.preprocess(
+        (val) => (val === undefined || val === null ? [] : val),
+        z.array(z.string(), { message: m.invalidValue }).transform((list, ctx) => {
+          if (list.some((v) => !allowed.includes(v)) || new Set(list).size !== list.length) {
+            ctx.addIssue({ code: "custom", message: m.invalidOption });
+            return z.NEVER;
+          }
+          if (list.length > 1 && list.some((v) => exclusive.includes(v))) {
+            ctx.addIssue({ code: "custom", message: m.invalidOption });
+            return z.NEVER;
+          }
+          // nothing ticked is left to isRequired; a partial pick must reach minItems
+          if (list.length && field.minItems !== undefined && list.length < field.minItems) {
+            ctx.addIssue({ code: "custom", message: formatMessage(m.minSelected, { min: field.minItems }) });
+            return z.NEVER;
+          }
+          if (field.maxItems !== undefined && list.length > field.maxItems) {
+            ctx.addIssue({ code: "custom", message: formatMessage(m.maxSelected, { max: field.maxItems }) });
+            return z.NEVER;
+          }
+          // always in the order of the options, whatever order they were ticked in
+          return allowed.filter((v) => list.includes(v));
+        })
+      );
+    }
+
     case "select":
     case "radio": {
       const allowed = field.options?.map((o) => o.value) ?? [];

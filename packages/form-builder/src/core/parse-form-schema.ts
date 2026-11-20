@@ -13,6 +13,7 @@ const FIELD_TYPES = [
   "select",
   "radio",
   "checkbox",
+  "checkboxes",
   "file",
   "custom",
   "array",
@@ -27,11 +28,13 @@ const conditionSchema = z
     equals: conditionValue.optional(),
     notEquals: conditionValue.optional(),
     notEmpty: z.literal(true).optional(),
+    contains: z.union([z.string(), z.array(z.string()).min(1)]).optional(),
   })
   .strict()
   .refine(
-    (c) => [c.equals, c.notEquals, c.notEmpty].filter((op) => op !== undefined).length === 1,
-    "A condition needs exactly one of: equals, notEquals, notEmpty"
+    (c) =>
+      [c.equals, c.notEquals, c.notEmpty, c.contains].filter((op) => op !== undefined).length === 1,
+    "A condition needs exactly one of: equals, notEquals, notEmpty, contains"
   );
 
 const showWhenSchema = z.union([conditionSchema, z.array(conditionSchema).min(1)]);
@@ -56,7 +59,9 @@ const fieldShape = {
   label: z.string().optional(),
   type: z.enum(FIELD_TYPES),
   isRequired: z.boolean().optional(),
-  options: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
+  options: z
+    .array(z.object({ label: z.string(), value: z.string(), exclusive: z.boolean().optional() }))
+    .optional(),
   showWhen: showWhenSchema.optional(),
   validation: z
     .object({
@@ -75,6 +80,7 @@ const fieldShape = {
   width: z.enum(["full", "half"]).optional(),
   readOnly: z.boolean().optional(),
   defaultValue: jsonValue.optional(),
+  suffix: z.string().min(1).optional(),
   accept: z.string().min(1).optional(),
   maxSizeMb: z.number().positive().optional(),
   multiple: z.boolean().optional(),
@@ -97,16 +103,18 @@ const BASE = ["name", "label", "type", "showWhen"];
 const V02 = ["isRequired", "options", "validation", "placeholder"];
 const VALUE = ["description", "width", "readOnly", "defaultValue"];
 const TEXT_LIKE = [...BASE, ...V02, ...VALUE];
+const WITH_SUFFIX = [...TEXT_LIKE, "suffix"];
 
 const ALLOWED_KEYS: Record<FieldType, string[]> = {
-  text: TEXT_LIKE,
+  text: WITH_SUFFIX,
   email: TEXT_LIKE,
-  tel: TEXT_LIKE,
-  number: TEXT_LIKE,
+  tel: WITH_SUFFIX,
+  number: WITH_SUFFIX,
   textarea: TEXT_LIKE,
   select: TEXT_LIKE,
   radio: TEXT_LIKE,
   checkbox: TEXT_LIKE,
+  checkboxes: [...BASE, "isRequired", "options", ...VALUE, "minItems", "maxItems"],
   date: [...BASE, "isRequired", "validation", "placeholder", ...VALUE],
   file: [...BASE, "isRequired", "description", "width", "readOnly", "accept", "maxSizeMb", "multiple"],
   // plus any key the field schema doesn't know, handed to the component
@@ -133,6 +141,20 @@ function issue(ctx: Ctx, path: Path, message: string) {
   ctx.addIssue({ code: "custom", path, message });
 }
 
+/** A `checkboxes` value: option values, no repeats, an exclusive one alone */
+function checkboxesValueProblem(field: RawField, value: unknown): string | undefined {
+  const options = field.options ?? [];
+  if (!Array.isArray(value) || !value.every((v) => options.some((o) => o.value === v))) {
+    return "must be an array of option values";
+  }
+  if (new Set(value).size !== value.length) return "has the same option twice";
+  const exclusive = options.filter((o) => o.exclusive && value.includes(o.value));
+  if (exclusive.length && value.length > 1) {
+    return `can't tick the exclusive option "${exclusive[0].value}" together with another one`;
+  }
+  return undefined;
+}
+
 /** Whether `defaultValue` fits the field's type; returns why not */
 function defaultValueProblem(field: RawField): string | undefined {
   const value = field.defaultValue;
@@ -141,6 +163,8 @@ function defaultValueProblem(field: RawField): string | undefined {
       return typeof value === "number" ? undefined : "must be a number";
     case "checkbox":
       return typeof value === "boolean" ? undefined : "must be true or false";
+    case "checkboxes":
+      return checkboxesValueProblem(field, value);
     case "select":
     case "radio":
       return typeof value === "string" && field.options?.some((o) => o.value === value)
@@ -170,6 +194,21 @@ function checkConditionTarget(
     issue(ctx, path, `"${owner}" can't depend on info field "${condition.field}": it has no value`);
   } else if ((target.type === "file" || target.type === "array") && !condition.notEmpty) {
     issue(ctx, path, `"${owner}" can only use notEmpty with ${target.type} field "${condition.field}"`);
+  } else if (target.type === "checkboxes") {
+    if (!condition.notEmpty && condition.contains === undefined) {
+      issue(
+        ctx,
+        path,
+        `"${owner}" can only use contains or notEmpty with checkboxes field "${condition.field}"`
+      );
+    }
+    const values = target.options?.map((o) => o.value) ?? [];
+    const unknown = [condition.contains ?? []].flat().find((v) => !values.includes(v));
+    if (unknown !== undefined) {
+      issue(ctx, path, `"${owner}" checks option "${unknown}", which "${condition.field}" doesn't have`);
+    }
+  } else if (condition.contains !== undefined) {
+    issue(ctx, path, `"${owner}" can only use contains with a checkboxes field, not "${condition.field}"`);
   }
 }
 
@@ -189,8 +228,26 @@ function checkField(field: RawField, ctx: Ctx) {
     issue(ctx, ["label"], `"${field.name}" needs a label`);
   }
 
-  if ((field.type === "select" || field.type === "radio") && !field.options?.length) {
+  if (
+    (field.type === "select" || field.type === "radio" || field.type === "checkboxes") &&
+    !field.options?.length
+  ) {
     issue(ctx, ["options"], `"${field.name}" needs options`);
+  }
+
+  field.options?.forEach((option, i) => {
+    if (option.exclusive !== undefined && field.type !== "checkboxes") {
+      issue(ctx, ["options", i, "exclusive"], `"exclusive" is only supported for type "checkboxes"`);
+    }
+  });
+
+  if (
+    field.type === "checkboxes" &&
+    field.minItems !== undefined &&
+    field.maxItems !== undefined &&
+    field.minItems > field.maxItems
+  ) {
+    issue(ctx, ["minItems"], `"minItems" is larger than "maxItems"`);
   }
 
   const v = field.validation;

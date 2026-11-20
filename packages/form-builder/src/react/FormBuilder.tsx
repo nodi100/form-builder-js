@@ -1,4 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { FieldSchema, FormDefinition, FormValues, SubmitResult } from "../core/types";
@@ -9,21 +20,52 @@ import {
   indexByName,
   isFieldVisible,
   isStepVisible,
+  pickVisibleValues,
   toConditions,
 } from "../core/form-visibility";
+import { toValidationResult, type ValidationResult } from "../core/validate";
 import { formatMessage, resolveMessages, type FormMessages } from "../core/messages";
 import { isPlainObject } from "../core/values";
 import { defaultClassNames, type FormClassNames } from "./class-names";
-import { FormBuilderContext, type FormBuilderContextValue } from "./context";
+import { devWarn, FormBuilderContext, type FormBuilderContextValue } from "./context";
 import type { FieldComponents, UploadFile } from "./types";
 import { FieldList } from "./Fields";
 import { Stepper, type StepperItem, type StepperProps } from "./Stepper";
 
+/**
+ * What a `ref` on <FormBuilder> gives you, for driving the form from your own
+ * buttons (save a draft, validate before a step of your own page, ...).
+ */
+export type FormBuilderHandle = {
+  /** The values of the visible fields, as typed: not validated, not trimmed */
+  getValues: () => FormValues;
+  /** Validates every field (all steps), shows the errors and focuses the
+   *  first one. Resolves like validateFormValues; `data` holds the clean
+   *  values. While a file is still uploading it fails with a `_form` error. */
+  validate: () => Promise<ValidationResult>;
+  /** Replaces every value, like a fresh mount with these `defaultValues` */
+  reset: (values?: FormValues) => void;
+};
+
+/** Second argument of `onValuesChange` */
+export type FormChangeInfo = {
+  /** Would validate() succeed right now? Computed without showing errors. */
+  isValid: boolean;
+};
+
 export type FormBuilderProps = {
   /** Result of parseFormSchema, usually loaded on the server */
   form: FormDefinition;
-  /** Usually a server action that calls validateFormValues */
-  onSubmit: (values: FormValues) => Promise<SubmitResult>;
+  /** Usually a server action that calls validateFormValues. Without it the
+   *  form has no Submit button (drive it through the ref instead). */
+  onSubmit?: (values: FormValues) => Promise<SubmitResult>;
+  /** Called on mount and after every change with the visible values (like
+   *  ref.getValues()) and whether the form is currently valid */
+  onValuesChange?: (values: FormValues, info: FormChangeInfo) => void;
+  /** Render no buttons and no status message, and use a <div> instead of a
+   *  <form>, so the fields can sit inside your own form. Meant for
+   *  "sections", "accordion" or one-step forms driven through the ref. */
+  hideActions?: boolean;
   /** Override any text; pass the same object to validateFormValues */
   messages?: Partial<FormMessages>;
   /** Replace the Tailwind classes of any part (see defaultClassNames) */
@@ -51,24 +93,38 @@ function stepUrl(stepId: string) {
   return url;
 }
 
-export function FormBuilder({
-  form,
-  onSubmit,
-  messages,
-  classNames,
-  components,
-  stepper: StepperComponent = Stepper,
-  defaultValues,
-  disabled = false,
-  uploadFile,
-  customValidators,
-  timeZone,
-}: FormBuilderProps) {
+export const FormBuilder = forwardRef<FormBuilderHandle, FormBuilderProps>(function FormBuilder(
+  {
+    form,
+    onSubmit,
+    onValuesChange,
+    hideActions = false,
+    messages,
+    classNames,
+    components,
+    stepper: StepperComponent = Stepper,
+    defaultValues,
+    disabled = false,
+    uploadFile,
+    customValidators,
+    timeZone,
+  },
+  ref
+) {
   const { steps } = form;
   const isAccordion = form.layout === "accordion";
   // "sections" and "accordion" show every step on one page
   const isSections = form.layout === "sections" || isAccordion;
   const isWizard = !isSections && steps.length > 1;
+
+  useEffect(() => {
+    if (hideActions && isWizard) {
+      devWarn(
+        `The form has ${steps.length} steps but hideActions removes the Next button, so only ` +
+          `the first step can be filled in. Use layout "sections" or "accordion" instead.`
+      );
+    }
+  }, [hideActions, isWizard, steps.length]);
 
   const m = useMemo(() => resolveMessages(messages), [messages]);
   const cn = useMemo(() => ({ ...defaultClassNames, ...classNames }), [classNames]);
@@ -103,6 +159,10 @@ export function FormBuilder({
   // furthest step reached; the stepper can jump back to anything up to it
   const [furthest, setFurthest] = useState(0);
   const [uploads, setUploads] = useState(0);
+  // the ref's validate() runs outside a render, so it reads the count from here
+  const uploadsRef = useRef(0);
+  // bumped to re-render after validate(), so the focus effect below runs
+  const [, setFocusRequest] = useState(0);
   // "accordion": ids of the expanded sections
   const [openSections, setOpenSections] = useState<ReadonlySet<string>>(
     () => new Set(steps.filter((s) => s.defaultOpen).map((s) => s.id))
@@ -130,6 +190,7 @@ export function FormBuilder({
     setValue,
     getValues,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(zodSchema),
@@ -286,8 +347,57 @@ export function FormBuilder({
     );
   };
 
+  // the latest callback, so a new function on every parent render doesn't resubscribe
+  const onValuesChangeRef = useRef(onValuesChange);
+  onValuesChangeRef.current = onValuesChange;
+
+  useEffect(() => {
+    const emit = (all: FormValues) => {
+      const notify = onValuesChangeRef.current;
+      if (!notify) return;
+      // validity is checked only if the caller reads it (once per change), on
+      // a snapshot, so a later read still sees the values of this change
+      const snapshot = structuredClone(all);
+      let isValid: boolean | undefined;
+      // a copy, so the caller can keep or change it without touching the form
+      notify(structuredClone(pickVisibleValues(fields, snapshot)), {
+        get isValid() {
+          return (isValid ??= zodSchema.safeParse(snapshot).success);
+        },
+      });
+    };
+    emit(getValues());
+    const subscription = watch((all) => emit(all as FormValues));
+    return () => subscription.unsubscribe();
+  }, [watch, getValues, fields, zodSchema]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      getValues: () => structuredClone(pickVisibleValues(fields, getValues())),
+      validate: async () => {
+        if (uploadsRef.current > 0) {
+          return { success: false, fieldErrors: { _form: m.uploadsPending } };
+        }
+        await trigger();
+        const result = toValidationResult(zodSchema.safeParse(getValues()));
+        if (!result.success) {
+          const paths = Object.keys(result.fieldErrors);
+          focusErrors.current = paths;
+          showFirstStepWithError(paths);
+          setFocusRequest((n) => n + 1);
+        }
+        return result;
+      },
+      reset: (values) => reset(buildDefaultValues(fields, values, timeZone)),
+    }),
+    // showFirstStepWithError reads the current step and open sections
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fields, zodSchema, m, timeZone, trigger, getValues, reset, current, openSections]
+  );
+
   const submit = async (data: FormValues) => {
-    if (disabled || uploads > 0) return;
+    if (disabled || uploads > 0 || !onSubmit) return;
     setStatus(null);
 
     let result: SubmitResult;
@@ -332,7 +442,10 @@ export function FormBuilder({
           void next();
         };
 
-  const trackUpload = useCallback((delta: 1 | -1) => setUploads((n) => n + delta), []);
+  const trackUpload = useCallback((delta: 1 | -1) => {
+    uploadsRef.current += delta;
+    setUploads((n) => n + delta);
+  }, []);
 
   const context: FormBuilderContextValue = {
     register,
@@ -352,11 +465,10 @@ export function FormBuilder({
   };
 
   const busy = isSubmitting || uploads > 0;
-  const showSubmit = nextStep === undefined && !disabled;
+  const showSubmit = nextStep === undefined && !disabled && !!onSubmit;
 
-  return (
-    <FormBuilderContext.Provider value={context}>
-      <form onSubmit={onFormSubmit} noValidate aria-disabled={disabled || undefined} className={cn.form}>
+  const body: ReactNode = (
+    <>
         {isAccordion ? (
           visibleSteps.map((index) => {
             const section = steps[index];
@@ -459,6 +571,23 @@ export function FormBuilder({
             <FieldList fields={step.fields} values={values} byName={byName} />
           </>
         )}
+    </>
+  );
+
+  if (hideActions) {
+    return (
+      <FormBuilderContext.Provider value={context}>
+        <div aria-disabled={disabled || undefined} className={cn.form}>
+          {body}
+        </div>
+      </FormBuilderContext.Provider>
+    );
+  }
+
+  return (
+    <FormBuilderContext.Provider value={context}>
+      <form onSubmit={onFormSubmit} noValidate aria-disabled={disabled || undefined} className={cn.form}>
+        {body}
 
         <div aria-live="polite">
           {status && (
@@ -489,4 +618,4 @@ export function FormBuilder({
       </form>
     </FormBuilderContext.Provider>
   );
-}
+});
