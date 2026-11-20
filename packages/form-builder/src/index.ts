@@ -28,8 +28,11 @@ export {
   indexByName,
   isFieldVisible,
   isStepVisible,
+  pickVisibleValues,
   toConditions,
 } from "./core/form-visibility";
+export { describeValues } from "./core/describe";
+export type { DescribeOptions, DescribedField, DescribedStep } from "./core/describe";
 export { isEmptyValue, isIsoDate, todayIso } from "./core/values";
 export { defaultMessages, formatMessage, resolveMessages } from "./core/messages";
 export type { FormMessages } from "./core/messages";

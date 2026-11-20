@@ -4,7 +4,8 @@ import { isPlainObject, todayIso } from "./values";
 /**
  * Initial values of a form: each field's `defaultValue`, overridden by
  * `overrides` (e.g. a saved application being edited). An `array` field
- * starts with `minItems` rows (1 when it is required) unless overridden.
+ * starts with `minItems` rows (1 when it is required) unless overridden, and
+ * a `checkboxes` field with `[]`.
  * Keys of `overrides` that aren't fields are dropped.
  */
 export function buildDefaultValues(
@@ -35,6 +36,8 @@ export function buildDefaultValues(
           ? todayIso(timeZone)
           : field.defaultValue;
     if (value !== undefined) values[field.name] = value;
+    // a group of checkboxes always holds a list, so ticking starts from []
+    else if (field.type === "checkboxes") values[field.name] = [];
   }
 
   return values;

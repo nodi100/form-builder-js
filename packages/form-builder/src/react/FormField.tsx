@@ -19,6 +19,7 @@ export function FormField({ field, path, readOnly = false }: Props) {
   const { register, control, errors, trigger, classNames, messages, components, disabled } =
     useFormBuilder();
   const error = get(errors, path)?.message as string | undefined;
+  const isGroup = field.type === "radio" || field.type === "checkboxes";
   const id = path;
   const descriptionId = field.description ? `${id}-description` : undefined;
   const errorId = error ? `${id}-error` : undefined;
@@ -67,8 +68,8 @@ export function FormField({ field, path, readOnly = false }: Props) {
       })}
       control={control}
       hasError={!!error}
-      // a radio group's aria lives on the <fieldset>
-      aria={field.type === "radio" ? {} : aria}
+      // a radio or checkbox group's aria lives on the <fieldset>
+      aria={isGroup ? {} : aria}
       classNames={classNames}
       messages={messages}
       disabled={disabled}
@@ -85,9 +86,9 @@ export function FormField({ field, path, readOnly = false }: Props) {
     field.width === "half" ? classNames.fieldHalf : classNames.fieldFull
   );
 
-  if (field.type === "radio") {
+  if (isGroup) {
     return (
-      <fieldset role="radiogroup" {...aria} className={className}>
+      <fieldset role={field.type === "radio" ? "radiogroup" : "group"} {...aria} className={className}>
         <legend className={classNames.legend}>{labelText}</legend>
         {description}
         {input}

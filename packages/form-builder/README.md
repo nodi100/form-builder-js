@@ -3,10 +3,12 @@
 Build React forms from JSON. Includes Zod validation, conditional fields, multi-step wizards or one-page sectioned forms, file uploads, repeating groups, and server-side re-validation that uses the same schema.
 
 - **One JSON schema** drives the UI, the client validation and the server validation.
-- **Conditional fields and steps** (`showWhen` with `equals`, `notEquals`, `notEmpty`). Hidden fields are never validated and are dropped from the submitted data.
+- **Conditional fields and steps** (`showWhen` with `equals`, `notEquals`, `notEmpty`, `contains`). Hidden fields are never validated and are dropped from the submitted data.
 - **Multi-step wizards** (each step validated on "Next", `?step=` in the URL) **or one-page forms split into sections** (`layout: "sections"`), optionally collapsible (`layout: "accordion"`).
-- **Field types:** text, email, tel, number, textarea, date, select, radio, checkbox, file (uploaded as soon as it's chosen), repeating groups (`array`), display-only `info` blocks, and your own `custom` components.
+- **Field types:** text, email, tel, number (with a unit `suffix`), textarea, date, select, radio, checkbox, a group of `checkboxes` (with an exclusive "none of these" option), file (uploaded as soon as it's chosen), repeating groups (`array`), display-only `info` blocks, and your own `custom` components.
 - **Prefill and review:** `defaultValue` per field, `defaultValues` for the whole form, `readOnly` fields, and a `disabled` form for reviewers.
+- **Embeddable:** drive the form from your own page with a `ref` (`getValues`, `validate`, `reset`), follow every change with `onValuesChange`, and drop the built-in buttons with `hideActions`, e.g. to save drafts.
+- **Summaries:** `describeValues` turns the answers into labelled lines of text for a review page, a PDF or an e-mail.
 - **Accessible** labels, fieldsets, `aria-invalid`/`aria-describedby` and live status messages. After a failed submit the first invalid field is focused.
 - **Customizable:** override any text (i18n), any CSS class, or any input component.
 - **Plain JSON everywhere:** the parsed form and the messages can be passed from a server component to the client.
@@ -253,14 +255,14 @@ All four formats are loaded the same way, with `parseFormSchema`, and conditiona
 |---|---|---|
 | `name` | string | Unique across all steps. Used as the key in the submitted values. Can't contain `.`, `[` or `]`. |
 | `label` | string | Required, except for `info`. |
-| `type` | see [Field types](#field-types) | `text`, `email`, `tel`, `number`, `textarea`, `date`, `select`, `radio`, `checkbox`, `file`, `custom`, `array`, `info` |
-| `isRequired` | boolean | A required checkbox must be checked; a required array needs at least one row. |
-| `options` | `{ label, value }[]` | Required for `select` / `radio`. Fixed in the JSON. For a `select` whose options come from an API, see [Select with options from an API](#select-with-options-from-an-api). |
+| `type` | see [Field types](#field-types) | `text`, `email`, `tel`, `number`, `textarea`, `date`, `select`, `radio`, `checkbox`, `checkboxes`, `file`, `custom`, `array`, `info` |
+| `isRequired` | boolean | A required checkbox must be checked; a required `checkboxes` group needs at least one ticked option; a required array needs at least one row. |
+| `options` | `{ label, value }[]` | Required for `select` / `radio` / `checkboxes`. Fixed in the JSON. A `checkboxes` option can also be `exclusive`. For a `select` whose options come from an API, see [Select with options from an API](#select-with-options-from-an-api). |
 | `placeholder` | string | |
 | `description` | string | Help text under the label, linked with `aria-describedby`. |
 | `width` | `"full" \| "half"` | `"half"` puts two fields side by side on wider screens. Default `"full"`. |
 | `readOnly` | boolean | Shown and submitted, but can't be edited. |
-| `defaultValue` | depends on the type | Initial value: a string for text-like fields, a number for `number`, `true`/`false` for `checkbox`, an option value for `select`/`radio`, `"YYYY-MM-DD"` or `"today"` for `date`, any JSON for `custom`. Not for `file`, `array`, `info`. |
+| `defaultValue` | depends on the type | Initial value: a string for text-like fields, a number for `number`, `true`/`false` for `checkbox`, an option value for `select`/`radio`, an array of option values for `checkboxes`, `"YYYY-MM-DD"` or `"today"` for `date`, any JSON for `custom`. Not for `file`, `array`, `info`. |
 | `showWhen` | condition or condition[] | Shown only when it matches (an array means **all** must match). Can depend on fields from the same or earlier steps. |
 | `validation` | object | `minLength`, `maxLength`, `min`, `max`, `integer`, `pattern`, `message` |
 
@@ -282,11 +284,12 @@ A condition compares another field's current value. It has `field` and **exactly
 | `equals` | the value is this one, or one of these | `{ "field": "status", "equals": ["employed", "self-employed"] }` |
 | `notEquals` | the value is none of these (an empty value counts as "not equal") | `{ "field": "sameAddress", "notEquals": true }` |
 | `notEmpty: true` | the field has a value | `{ "field": "photos", "notEmpty": true }` |
+| `contains` | a `checkboxes` field has this option ticked, or any of these | `{ "field": "media", "contains": "photo" }` |
 
 - **Empty** means `undefined`, `null`, `""` or whitespace, `false` (an unchecked checkbox), `[]` or `{}`. `0` is not empty.
 - `showWhen: [ ... ]` means **all** conditions must match.
 - If the field a condition points at is itself hidden, the condition fails, so the whole chain is hidden (even with `notEquals`).
-- `file` and `array` fields can only be used with `notEmpty`. `info` fields have no value and can't be used at all.
+- `file` and `array` fields can only be used with `notEmpty`. `checkboxes` fields only with `contains` or `notEmpty`, and `contains` only with `checkboxes` (it must name one of their options). `info` fields have no value and can't be used at all.
 - Inside an `array` row, conditions point at **fields of the same row**.
 
 ## Field types
@@ -294,6 +297,49 @@ A condition compares another field's current value. It has `field` and **exactly
 ### `text`, `email`, `textarea`, `number`, `select`, `radio`, `checkbox`
 
 Unchanged from earlier versions; see the [Quick start](#quick-start-nextjs).
+
+`text`, `tel` and `number` take a **`suffix`**: a unit or a short text shown after the input and read out by screen readers. It is not part of the value. `describeValues` adds it to the value (`"12 m³"`).
+
+```json
+{ "name": "volume", "label": "Volume", "type": "number", "suffix": "m³", "isRequired": true, "validation": { "min": 0 } }
+```
+
+### `checkboxes`
+
+A group of checkboxes, several of which can be ticked. The value is an **array of option values**, always in the order of the options (`[]` when nothing is ticked). Use `checkbox` for a single yes/no box.
+
+| Key | Type | |
+|---|---|---|
+| `options` | `{ label, value, exclusive? }[]` | Required. An `exclusive` option ("None of these") unticks every other option when ticked, and is unticked when another option is ticked. The server rejects it together with another option. |
+| `isRequired` | boolean | At least one option must be ticked. |
+| `minItems` | integer | Fewest ticked options, once something is ticked. Combine with `isRequired` to make the field mandatory. |
+| `maxItems` | integer | Most ticked options. |
+
+Show other fields under a ticked option with the `contains` condition. Here a photo uploader appears under "Photos taken", a video uploader under "Video taken", and "Not done" clears both:
+
+```json
+[
+  {
+    "name": "media",
+    "label": "Photo / video",
+    "type": "checkboxes",
+    "isRequired": true,
+    "options": [
+      { "label": "Photos taken", "value": "photo" },
+      { "label": "Video taken", "value": "video" },
+      { "label": "Not done", "value": "none", "exclusive": true }
+    ]
+  },
+  { "name": "photos", "label": "Photos", "type": "file", "multiple": true, "isRequired": true,
+    "accept": "image/png,image/jpeg", "maxSizeMb": 10, "showWhen": { "field": "media", "contains": "photo" } },
+  { "name": "video", "label": "Video", "type": "file", "isRequired": true,
+    "accept": "video/mp4", "maxSizeMb": 100, "showWhen": { "field": "media", "contains": "video" } },
+  { "name": "camera", "label": "Which camera was used?", "type": "text",
+    "showWhen": { "field": "media", "contains": ["photo", "video"] } }
+]
+```
+
+Submitted value: `{ "media": ["photo"], "photos": [{ "id": "u1", "name": "1.jpg" }] }`. Unticking "Photos taken" hides the uploader, and its files are dropped from the submitted data.
 
 ### `tel`
 
@@ -415,7 +461,7 @@ export const messagesKa: Partial<FormMessages> = {
 validateFormValues(form, values, { messages: messagesKa });
 ```
 
-See `defaultMessages` for every key. Keys added in 0.3: `invalidDate`, `dateMin`, `dateMax`, `minItems`, `maxItems` (validation, so pass them to the server too) and `fileTooLarge`, `fileType`, `uploadFailed`, `uploading`, `add`, `remove`, `arrayItem` (UI only).
+See `defaultMessages` for every key. Keys added in 0.3: `invalidDate`, `dateMin`, `dateMax`, `minItems`, `maxItems` (validation, so pass them to the server too) and `fileTooLarge`, `fileType`, `uploadFailed`, `uploading`, `add`, `remove`, `arrayItem` (UI only). Newer keys: `minSelected`, `maxSelected` (validation of `checkboxes`), `yes`, `no` (a checkbox in [`describeValues`](#summaries-describevalues)) and `uploadsPending` (returned by [`validate()`](#drive-the-form-from-your-own-page-ref-onvalueschange-hideactions) while a file is uploading).
 
 ### Styles: `classNames`
 
@@ -423,7 +469,7 @@ Every part of the form has a named **slot** that holds its Tailwind classes. Pas
 
 | Group | Slot | Applies to |
 |---|---|---|
-| Layout | `form` | The `<form>` element (spacing between its parts) |
+| Layout | `form` | The `<form>` element (a `<div>` with `hideActions`), spacing between its parts |
 | | `fieldGrid` | The grid that holds the fields of a step, a section or an array row (2 columns from `sm:`) |
 | | `field` | The wrapper around one field (label + input + error) |
 | | `fieldFull` | Added to `field` for `width: "full"` (the default): spans both columns |
@@ -441,12 +487,15 @@ Every part of the form has a named **slot** that holds its Tailwind classes. Pas
 | | `accordionIconOpen` | The arrow of an expanded section (rotated) |
 | | `accordionPanel` | The wrapper around the fields of a section |
 | Labels | `label` | The label above an input |
-| | `legend` | The label of a radio group or an array |
+| | `legend` | The label of a radio group, a `checkboxes` group or an array |
 | | `required` | The `*` after a required field's label |
 | | `description` | The help text from a field's `description` |
 | Inputs | `input` | Text, email, tel, number, date, textarea and select inputs |
 | | `inputError` | The same inputs **when they have an error** (used instead of `input`) |
-| | `checkboxLabel` | The `<label>` that wraps a checkbox and its text |
+| | `inputGroup` | The wrapper around an input and its `suffix` |
+| | `inputSuffix` | The `suffix` text ("kg") |
+| | `checkboxLabel` | The `<label>` that wraps a checkbox and its text (also each box of `checkboxes`) |
+| | `checkboxGroup` | The wrapper around all boxes of a `checkboxes` field |
 | | `radioGroup` | The wrapper around all options of a radio group |
 | | `radioLabel` | The `<label>` that wraps one radio option and its text |
 | | `error` | The error message under a field |
@@ -621,7 +670,7 @@ function MySelect({ field, name, control, disabled, readOnly }: FieldComponentPr
 
 Besides `field`, `name`, `id`, `register`, `control`, `aria`, `hasError`, `classNames` and `messages`, every component gets `disabled` (the whole form is disabled) and `readOnly` (the field, or the array it's in, is read-only); honor both. `aria["aria-describedby"]` already points at the field's description and error.
 
-The keys of `components` are the field types `text`, `email`, `tel`, `number`, `textarea`, `date`, `select`, `radio`, `checkbox` and `file`, plus `custom` (see below). `array` and `info` are rendered by the form itself; style them with `classNames`.
+The keys of `components` are the field types `text`, `email`, `tel`, `number`, `textarea`, `date`, `select`, `radio`, `checkbox`, `checkboxes` and `file`, plus `custom` (see below). A `checkboxes` component is controlled: read and set the array with `useController({ control, name })`, as in the example above. `array` and `info` are rendered by the form itself; style them with `classNames`.
 
 ### Custom fields: `components.custom` and `customValidators`
 
@@ -817,6 +866,118 @@ export function MyForm(props: FormBuilderProps) {
 
 To hide the stepper, pass `stepper={() => null}`.
 
+### Drive the form from your own page: `ref`, `onValuesChange`, `hideActions`
+
+Sometimes the form is only part of a page that has its own buttons: a "Save draft" that stores half-filled answers, or a "Finish" that saves the form together with other data. Three props cover this:
+
+- **`hideActions`** renders no Next / Back / Submit buttons and no status message, and uses a `<div>` instead of a `<form>`, so the fields can sit inside your own `<form>`. Meant for `"sections"`, `"accordion"` and one-step forms (a wizard needs its Next button; in development a warning says so).
+- **`onSubmit` is optional.** Without it there is no Submit button.
+- **A `ref`** (`FormBuilderHandle`) lets your buttons read and check the form:
+
+| Method | |
+|---|---|
+| `getValues()` | The values of the **visible** fields, as typed: not validated, not trimmed. Hidden fields and hidden array-row fields are left out. Good for a draft. |
+| `validate()` | Validates every field of every step, shows the errors, opens the accordion sections that have one and focuses the first invalid field. Resolves like `validateFormValues`: `{ success: true, data }` with the clean values, or `{ success: false, fieldErrors }`. While a file is still uploading it fails with `{ _form: messages.uploadsPending }`. |
+| `reset(values?)` | Replaces every value, as if the form was mounted with these `defaultValues`. |
+
+- **`onValuesChange(values, { isValid })`** is called on mount and after every change, with the same values as `getValues()` and whether `validate()` would succeed right now (computed silently, no errors are shown, and only when you read `isValid`, so a callback that only autosaves pays nothing for it). Use it to enable a button only when the form is complete, or to autosave. `values` is a copy, so you can keep it.
+
+```tsx
+"use client";
+import { useRef, useState } from "react";
+import type { FormDefinition, FormValues } from "@iteasa/form-builder-js";
+import { FormBuilder, type FormBuilderHandle } from "@iteasa/form-builder-js/react";
+
+export function ChecklistPage({ form, draft }: { form: FormDefinition; draft?: FormValues }) {
+  const checklist = useRef<FormBuilderHandle>(null);
+  const [isComplete, setIsComplete] = useState(false);
+
+  const saveDraft = () => fetch("/api/draft", { method: "POST", body: JSON.stringify(checklist.current!.getValues()) });
+
+  const finish = async () => {
+    const result = await checklist.current!.validate();
+    if (!result.success) return; // the errors are shown under the fields
+    await fetch("/api/finish", { method: "POST", body: JSON.stringify(result.data) });
+  };
+
+  return (
+    <>
+      <FormBuilder
+        ref={checklist}
+        form={form}
+        defaultValues={draft}
+        hideActions
+        onValuesChange={(_values, { isValid }) => setIsComplete(isValid)}
+      />
+      <button type="button" onClick={saveDraft}>Save draft</button>
+      <button type="button" onClick={finish} disabled={!isComplete}>Finish</button>
+    </>
+  );
+}
+```
+
+`validate()` runs the same Zod schema as `validateFormValues`, so the server still re-checks the data with its own copy of the schema. `onValuesChange` validates the whole form on every keystroke; that is cheap for forms of a few dozen fields.
+
+### Summaries: `describeValues`
+
+`describeValues(form, values, options?)` turns answers into plain text for a review page, a PDF or an e-mail. It walks the steps in form order and returns, per step, the visible fields that have a value, each with its label and its value as lines:
+
+| Field | Lines |
+|---|---|
+| `select`, `radio` | The option's label |
+| `checkboxes` | One line per ticked option, its label |
+| `checkbox` | `messages.yes` / `messages.no` |
+| `file` | One line per file name |
+| `array` | One line per row: `"Fish #1: Kind: Trout, Weight: 2 kg"` |
+| `text`, `tel`, `number` | The value, plus the `suffix` |
+| others | The value as text (`custom`: JSON unless it is a string or number) |
+
+`info` fields, hidden fields and empty fields are skipped.
+
+```ts
+import { describeValues } from "@iteasa/form-builder-js";
+
+const summary = describeValues(form, { volume: 12, media: ["photo"], photos: [{ id: "u1", name: "1.jpg" }] });
+// [
+//   { id: "vehicle", title: "Vehicle", fields: [{ name: "volume", label: "Volume", lines: ["12 m³"] }] },
+//   { id: "media", title: "Media", fields: [
+//       { name: "media", label: "Photo / video", lines: ["Photos taken"] },
+//       { name: "photos", label: "Photos", lines: ["1.jpg"] },
+//   ] },
+// ]
+```
+
+```tsx
+{summary.map((step) => (
+  <section key={step.id}>
+    {step.title && <h2>{step.title}</h2>}
+    <dl>
+      {step.fields.map((f) => (
+        <div key={f.name}>
+          <dt>{f.label}</dt>
+          {f.lines.map((line, i) => <dd key={i}>{line}</dd>)}
+        </div>
+      ))}
+    </dl>
+  </section>
+))}
+```
+
+Options:
+
+| Option | |
+|---|---|
+| `messages` | Your translated `yes`, `no` and `arrayItem`. |
+| `formatValue(field, value)` | Your own lines for a value, e.g. a formatted date. Return `undefined` to use the built-in text. |
+| `includeEmpty` | Keep visible fields without a value (with `lines: []`). Default `false`. |
+
+```ts
+describeValues(form, values, {
+  messages: { yes: "კი", no: "არა" },
+  formatValue: (field, value) => (field.type === "date" ? [new Date(value as string).toLocaleDateString("ka-GE")] : undefined),
+});
+```
+
 ## API
 
 From `@iteasa/form-builder-js` (no React, safe on the server):
@@ -827,29 +988,31 @@ From `@iteasa/form-builder-js` (no React, safe on the server):
 | `validateFormValues(form, values, { messages?, customValidators?, timeZone? }?)` | Returns `{ success: true, data }` or `{ success: false, fieldErrors }`. `fieldErrors` keys are field names or array paths (`"personnel.2.personalNumber"`). |
 | `buildZodSchema(fields, messages?, { customValidators?, timeZone? }?)` | The Zod schema used by both sides. |
 | `buildDefaultValues(fields, overrides?, timeZone?)` | The initial values `<FormBuilder>` starts with. |
+| `describeValues(form, values, { messages?, formatValue?, includeEmpty? }?)` | The answers as labelled lines of text, step by step. See [Summaries](#summaries-describevalues). |
+| `pickVisibleValues(fields, values)` | The values of the visible fields only, unvalidated (what the ref's `getValues()` returns). |
 | `isFieldVisible`, `isStepVisible`, `conditionMatches`, `flattenSteps`, `indexByName`, `toConditions` | Visibility helpers. |
 | `isEmptyValue`, `isIsoDate`, `todayIso` | Value helpers. |
 | `defaultMessages`, `resolveMessages`, `formatMessage` | Text helpers. |
-| Types | `FormDefinition`, `FormLayout`, `FormStep`, `FieldSchema`, `CustomFieldSchema`, `Condition`, `UploadedFile`, `FormValues`, `SubmitResult`, `FormMessages`, `CustomValidator`, `ValidateOptions` and more. |
+| Types | `FormDefinition`, `FormLayout`, `FormStep`, `FieldSchema`, `CustomFieldSchema`, `Condition`, `UploadedFile`, `FormValues`, `SubmitResult`, `FormMessages`, `CustomValidator`, `ValidateOptions`, `ValidationResult`, `DescribeOptions`, `DescribedStep`, `DescribedField` and more. |
 
 From `@iteasa/form-builder-js/react`:
 
 | Export | |
 |---|---|
-| `<FormBuilder form onSubmit messages? classNames? components? stepper? defaultValues? disabled? uploadFile? customValidators? timeZone? />` | The form. |
+| `<FormBuilder form ref? onSubmit? onValuesChange? hideActions? messages? classNames? components? stepper? defaultValues? disabled? uploadFile? customValidators? timeZone? />` | The form. `ref` gives a `FormBuilderHandle` (`getValues`, `validate`, `reset`). |
 | `FieldInput` | The built-in input, handy to wrap. |
 | `FileInput` | The built-in file input. |
 | `Stepper` | The built-in stepper, handy to wrap. |
 | `defaultClassNames` | All default Tailwind classes. |
-| Types | `FormBuilderProps`, `FieldComponentProps`, `FieldComponents`, `UploadFile`, `StepperProps`, `StepperItem`, `FormClassNames`. |
+| Types | `FormBuilderProps`, `FormBuilderHandle`, `FormChangeInfo`, `FieldComponentProps`, `FieldComponents`, `UploadFile`, `StepperProps`, `StepperItem`, `FormClassNames`. |
 
 ## Behaviour notes
 
 - Values are kept while moving between steps, but **not across page reloads**. A reload starts at step 1.
 - Errors appear when a field loses focus, on "Next" or on Submit. Once shown, an error clears as soon as the field is fixed.
-- After a failed submit (client or server), the first invalid field in page order is scrolled to and focused.
-- Enter on a middle step acts as "Next".
-- Submit is disabled while files are uploading.
+- After a failed submit (client or server) or a failed `ref.validate()`, the first invalid field in page order is scrolled to and focused.
+- Enter on a middle step acts as "Next". With `hideActions` there is no `<form>`, so Enter submits nothing.
+- Submit is disabled while files are uploading, and `ref.validate()` fails until they finish.
 
 ## Changelog
 

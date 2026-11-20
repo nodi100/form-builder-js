@@ -28,7 +28,12 @@ export const defaultClassNames = {
   input: `${control} border-gray-300`,
   /** used instead of `input` when the field has an error */
   inputError: `${control} border-red-500`,
+  /** input + `suffix` of a text / tel / number field */
+  inputGroup: "flex items-center gap-2",
+  inputSuffix: "shrink-0 text-sm text-gray-500",
   checkboxLabel: "flex cursor-pointer items-center gap-2 text-sm",
+  /** the boxes of a `checkboxes` field */
+  checkboxGroup: "flex flex-col gap-2",
   radioGroup: "flex flex-wrap gap-4",
   radioLabel: "flex cursor-pointer items-center gap-2 text-sm",
   error: "text-xs text-red-500",

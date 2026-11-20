@@ -5,7 +5,7 @@ import type {
   FormStep,
   FormValues,
 } from "./types";
-import { isEmptyValue } from "./values";
+import { isEmptyValue, isPlainObject } from "./values";
 
 export function indexByName(fields: FieldSchema[]): Record<string, FieldSchema> {
   return Object.fromEntries(fields.map((f) => [f.name, f]));
@@ -22,6 +22,10 @@ export function toConditions(showWhen: Condition | Condition[] | undefined): Con
   return Array.isArray(showWhen) ? showWhen : [showWhen];
 }
 
+function toList(value: string | string[]): string[] {
+  return Array.isArray(value) ? value : [value];
+}
+
 function isOneOf(expected: string | boolean | string[], current: unknown) {
   return Array.isArray(expected) ? expected.includes(current as string) : current === expected;
 }
@@ -29,6 +33,10 @@ function isOneOf(expected: string | boolean | string[], current: unknown) {
 /** Does one condition match the value of the field it points at? */
 export function conditionMatches(condition: Condition, current: unknown): boolean {
   if (condition.notEmpty) return !isEmptyValue(current);
+  if (condition.contains !== undefined) {
+    const wanted = toList(condition.contains);
+    return Array.isArray(current) && current.some((value) => wanted.includes(value as string));
+  }
   if (condition.notEquals !== undefined) return !isOneOf(condition.notEquals, current);
   return condition.equals !== undefined && isOneOf(condition.equals, current);
 }
@@ -60,6 +68,28 @@ export function isFieldVisible(
     if (parent && !isFieldVisible(parent, values, byName, path)) return false;
     return conditionMatches(condition, values[condition.field]);
   });
+}
+
+/**
+ * The values of the visible fields only, as they are: not validated, not
+ * trimmed. Inside an `array`, each row keeps only its visible fields. Use it
+ * to save a draft; use validateFormValues for the final, checked values.
+ */
+export function pickVisibleValues(fields: FieldSchema[], values: FormValues): FormValues {
+  const byName = indexByName(fields);
+  const result: FormValues = {};
+
+  for (const field of fields) {
+    if (field.type === "info" || !isFieldVisible(field, values, byName)) continue;
+    const value = values[field.name];
+    if (value === undefined) continue;
+    result[field.name] =
+      field.type === "array" && Array.isArray(value)
+        ? value.map((row) => (isPlainObject(row) ? pickVisibleValues(field.fields ?? [], row) : {}))
+        : value;
+  }
+
+  return result;
 }
 
 /** A step is shown when any of its fields is. parseFormSchema copies the
